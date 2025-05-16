@@ -308,7 +308,11 @@ namespace JournalApp.UserControls
                 txbText.SelectionStart = 0;
             }
             else
+            {
                 ShowCaret(txbText.Handle);
+                txbText.SelectionLength = 0;
+                txbText.SelectionStart = txbText.Text.Length;
+            }
 
         }
 
@@ -408,6 +412,12 @@ namespace JournalApp.UserControls
         private void MessageRecordControl_Paint(object sender, PaintEventArgs e)
         {
             ControlPaint.DrawBorder(e.Graphics, ClientRectangle, CurrentPalette.MessageBorderColor, CurrentPalette.MessageBorderStyle);// ButtonBorderStyle.Solid);
+        }
+
+        private void FreeResources()
+        {
+            txbText.GotFocus -= TxbText_GotFocus;
+            txbText.MouseWheel -= TxbText_MouseWheel;
         }
 
     }

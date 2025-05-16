@@ -15,6 +15,7 @@
         {
             if (disposing && (components != null))
             {
+                FreeResources();
                 components.Dispose();
             }
             base.Dispose(disposing);

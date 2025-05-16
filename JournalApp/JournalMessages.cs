@@ -327,6 +327,10 @@ namespace JournalApp
         private void FillList(TableLayoutPanel layoutPanel, List<JournalDB.Message> messagelist, bool Pinned)
         {
             var now = DateTime.Now;
+            foreach (Control ctrl in layoutPanel.Controls)
+            {
+                ctrl.Dispose();
+            }
             layoutPanel.Controls.Clear();
             layoutPanel.RowCount = 0;
             //MessageRecordControl LastMsgRec = null;
