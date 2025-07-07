@@ -38,9 +38,9 @@
     <Exec Command="powershell -ExecutionPolicy Bypass -File Update-Version.ps1" />
   </Target>
   <PropertyGroup>
-    <Version>1.0.0.95</Version>
-    <AssemblyVersion>1.0.0.95</AssemblyVersion>
-    <FileVersion>1.0.0.95</FileVersion>
-    <AssemblyInformationalVersion>1.0.0.95</AssemblyInformationalVersion>
+    <Version>1.0.0.102</Version>
+    <AssemblyVersion>1.0.0.102</AssemblyVersion>
+    <FileVersion>1.0.0.102</FileVersion>
+    <AssemblyInformationalVersion>1.0.0.102</AssemblyInformationalVersion>
   </PropertyGroup>
 </Project>

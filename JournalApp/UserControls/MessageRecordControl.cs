@@ -31,7 +31,7 @@ namespace JournalApp.UserControls
 
 
         public delegate void OnMessageRecordEvent(MessageRecordControl sender, JournalDB.Message CurrentMessage);
-        int MessageID;
+        public int MessageID { get; private set; }
         public JournalDB.Message CurrentMessage { get; private set; }
         DB Database;
         private ImageList imageList;
@@ -217,7 +217,7 @@ namespace JournalApp.UserControls
 
         public void SetControlHeightByCurrectText()
         {
-            Size size = TextRenderer.MeasureText(txbText.Text, txbText.Font, new Size((int)(txbText.ClientSize.Width*0.9), int.MaxValue), TextFormatFlags.WordBreak);
+            Size size = TextRenderer.MeasureText(txbText.Text, txbText.Font, new Size((int)(txbText.ClientSize.Width * 0.9), int.MaxValue), TextFormatFlags.WordBreak);
             txbText.Height = Math.Max(size.Height, 48);
             this.Height = txbText.Top + txbText.Height + 24;
         }

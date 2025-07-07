@@ -5,6 +5,7 @@ using Microsoft.VisualBasic.ApplicationServices;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Configuration;
 using System.Data;
 using System.Data.Entity;
 using System.Diagnostics;
@@ -38,45 +39,21 @@ namespace JournalApp
         int? newMsgID;
         int? SavedSplitterDistance;
 
+        private static readonly Font DateLabelFont = new Font(SystemFonts.DefaultFont.FontFamily, 14);
+        private static readonly Padding MessagePadding = new Padding(20, 5, 5, 5);
+        private static readonly Padding DateLabelMargin = new Padding(10, 10, 10, 10);
+
         public JournalMessages()
         {
             InitializeComponent();
             SetDefaultSplitterPosition();
             Database = new DB();
-            tlpMessagesCurrent.MouseWheel += tlpMessagesCurrent_MouseWheel;
+            Load += JournalMessages_Load;
         }
 
-        private void tlpMessagesCurrent_MouseWheel(object? sender, MouseEventArgs e)
+        private void JournalMessages_Load(object? sender, EventArgs e)
         {
-            if (tlpMessagesCurrent.VerticalScroll.Value + tlpMessagesCurrent.VerticalScroll.LargeChange >= tlpMessagesCurrent.VerticalScroll.Maximum)
-            {
-                IsAddingDate++;
-            }
-            else
-            {
-                IsAddingDate = 0;
-            }
-
-            var ticks = Math.Abs(e.Delta / 120);
-            if (e.Delta < 0)
-            {
-                if ((!tlpMessagesCurrent.VerticalScroll.Visible || tlpMessagesCurrent.VerticalScroll.Value + tlpMessagesCurrent.VerticalScroll.LargeChange >= tlpMessagesCurrent.VerticalScroll.Maximum) && IsAddingDate > 2)
-                {
-                    //for (int i = 0; i < ticks; i++)
-                    SelectedStartShift = SelectedStartShift.AddShift(-10);//.PreviousShift().PreviousShift();
-                    dtpSelectedStartDate.Value = SelectedStartShift.ShiftStartsAt();
-                    IsAddingDate = 0;
-                }
-            }
-            /*else
-            {
-                if (!tlpMessagesCurrent.VerticalScroll.Visible || tlpMessagesCurrent.VerticalScroll.Value == tlpMessagesCurrent.VerticalScroll.Maximum)
-                {
-                    for (int i = 0; i < ticks; i++)
-                        SelectedEndShiftIncluded = SelectedEndShiftIncluded.NextShift().NextShift();
-                    dtpSelectedEndDateInclude.Value = SelectedEndShiftIncluded.ShiftStartsAt();
-                }
-            }*/
+            dtpSelectedStartDate.Value = SelectedStartShift.AddShift(-10).ShiftStartsAt();
         }
 
         public void Prepare()
@@ -330,7 +307,116 @@ namespace JournalApp
             }
             return null;
         }
+        private void FillList(TableLayoutPanel layoutPanel, List<JournalDB.Message> messagelist, bool pinned)
+        {
+            var now = DateTime.Now;
+            layoutPanel.SuspendLayout();
 
+            // Собираем список текущих MessageID
+            var existingMessages = layoutPanel.Controls
+                .OfType<MessageRecordControl>()
+                .ToDictionary(m => m.MessageID);
+
+            // Контролы, которые будут оставлены
+            var usedControls = new HashSet<Control>();
+
+            // Группировка по сменам
+            var messageGroups = messagelist
+                .Where(m => m.IsPinned == pinned)
+                .OrderByDescending(m => m.CreatingDate)
+                .GroupBy(m => new { m.Shift.ShiftDate, m.Shift.IsNight });
+
+            // Временная панель для добавления новых контролов
+            var newControls = new List<Control>();
+
+            foreach (var msgGroup in messageGroups)
+            {
+                var shift = new Shift(msgGroup.Key.ShiftDate, msgGroup.Key.IsNight);
+
+                // Добавим заголовок смены
+                if (!pinned)
+                {
+                    var dateLabel = new Label
+                    {
+                        Text = parameters.ProductionShiftActive
+                            ? $"Смена {shift.GetShiftNumber()}: {shift.ShiftDate:dd-MM-yyyy} {(shift.IsNight ? "Н" : "Д")}"
+                            : $"Дата: {shift.ShiftDate:dd-MM-yyyy}",
+                        BackColor = CurrentPalette.BackgroundDateLabel,
+                        TextAlign = ContentAlignment.MiddleCenter,
+                        Height = 36,
+                        Margin = DateLabelMargin,
+                        Font = DateLabelFont,
+                        AutoSize = true,
+                        Dock = DockStyle.Top
+                    };
+                    newControls.Add(dateLabel);
+                }
+
+                foreach (var msg in msgGroup)
+                {
+                    MessageRecordControl mrControl;
+
+                    if (existingMessages.TryGetValue(msg.MessageID, out var existingControl))
+                    {
+                        // Повторно используем уже существующий
+                        mrControl = existingControl;
+                    }
+                    else
+                    {
+                        // Новый контрол
+                        mrControl = new MessageRecordControl(msg.MessageID, Database, pinned, CurrentPalette);
+                        mrControl.OnDelete += MrControl_OnDeleteRecord;
+                        mrControl.OnChange += MrControl_OnChange;
+                    }
+
+                    // Обновление свойств
+                    var msgShift = new Shift(msg.CreatingDate);
+                    var canWrite = msg.UserID == parameters.UserID
+                                   && AllowWrite
+                                   && (
+                                       parameters.ProductionShiftActive
+                                       ? msgShift.GetShiftStartDateTime() < now
+                                         && msgShift.NextShift().GetShiftStartDateTime().AddMinutes(AllowToEditRecordAfterShift) > now
+                                       : msg.CreatingDate.Date == now.Date
+                                   );
+
+                    mrControl.ReadOnly = !canWrite;
+                    mrControl.AllowedToPin = AllowPin;
+                    mrControl.Margin = MessagePadding;
+
+                    newControls.Add(mrControl);
+                    usedControls.Add(mrControl); // помечаем как используемый
+                }
+            }
+
+            // Удаляем контролы, которых больше нет
+            foreach (Control ctrl in layoutPanel.Controls.Cast<Control>().ToList())
+            {
+                if (!usedControls.Contains(ctrl))
+                {
+                    ctrl.Dispose();
+                    layoutPanel.Controls.Remove(ctrl);
+                }
+            }
+
+            // Очищаем и добавляем все в правильном порядке
+            layoutPanel.Controls.Clear();
+            layoutPanel.RowCount = 0;
+            foreach (var ctrl in newControls)
+            {
+                layoutPanel.Controls.Add(ctrl, 0, layoutPanel.RowCount++);
+            }
+
+            // Обновляем стили строк
+            layoutPanel.RowStyles.Clear();
+            for (int i = 0; i < layoutPanel.RowCount; i++)
+            {
+                layoutPanel.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+            }
+
+            layoutPanel.ResumeLayout(true);
+        }
+        /*
         private void FillList(TableLayoutPanel layoutPanel, List<JournalDB.Message> messagelist, bool Pinned)
         {
             var now = DateTime.Now;
@@ -410,7 +496,7 @@ namespace JournalApp
             //if (LastMsgRec != null)
             //    LastMsgRec.Focus();
         }
-
+        */
         private void MrControl_OnChange(MessageRecordControl sender, JournalDB.Message CurrentMessage)
         {
             Refresh();
