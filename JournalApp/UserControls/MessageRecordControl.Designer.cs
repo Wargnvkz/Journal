@@ -63,7 +63,7 @@
             // 
             lvFiles.AllowDrop = true;
             lvFiles.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Right;
-            lvFiles.Location = new Point(830, 3);
+            lvFiles.Location = new Point(829, 3);
             lvFiles.Margin = new Padding(4, 3, 4, 3);
             lvFiles.MultiSelect = false;
             lvFiles.Name = "lvFiles";

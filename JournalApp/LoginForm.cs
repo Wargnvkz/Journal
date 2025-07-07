@@ -19,6 +19,7 @@ namespace JournalApp
         public LoginForm()
         {
             InitializeComponent();
+            Text = $"Вход в систему (v.{AppVersion.GetVersion()})";
             FillLoginUser();
         }
 

@@ -1,8 +1,8 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
-    <TargetFramework>net8.0-windows</TargetFramework>
+    <TargetFramework>net8.0-windows7.0</TargetFramework>
     <Nullable>enable</Nullable>
     <UseWindowsForms>true</UseWindowsForms>
     <ImplicitUsings>enable</ImplicitUsings>
@@ -14,6 +14,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\JournalDB\JournalDB.csproj" />
+    <Reference Include="System.Deployment" />
   </ItemGroup>
 
   <ItemGroup>
@@ -33,5 +34,13 @@
       <LastGenOutput>Resources.Designer.cs</LastGenOutput>
     </EmbeddedResource>
   </ItemGroup>
-
+  <Target Name="UpdateVersionBeforeBuild" BeforeTargets="BeforeBuild">
+    <Exec Command="powershell -ExecutionPolicy Bypass -File Update-Version.ps1" />
+  </Target>
+  <PropertyGroup>
+    <Version>1.0.0.95</Version>
+    <AssemblyVersion>1.0.0.95</AssemblyVersion>
+    <FileVersion>1.0.0.95</FileVersion>
+    <AssemblyInformationalVersion>1.0.0.95</AssemblyInformationalVersion>
+  </PropertyGroup>
 </Project>

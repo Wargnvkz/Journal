@@ -12,7 +12,7 @@ namespace JournalDB
         [Key]
         public int JournalTypeID { get; set; }
         public string JournalTypeName { get; set; }
-        //public bool ProductionShiftActive { get; set; }
+        public bool ProductionShiftActive { get; set; }
 
     }
 }

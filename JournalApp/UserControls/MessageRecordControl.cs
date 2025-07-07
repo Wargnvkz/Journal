@@ -198,9 +198,7 @@ namespace JournalApp.UserControls
         private void txbText_TextChanged(object sender, EventArgs e)
         {
             // Вычисляем необходимый размер для текста
-            Size size = TextRenderer.MeasureText(txbText.Text, txbText.Font, new Size(txbText.Width, int.MaxValue), TextFormatFlags.WordBreak);
-            txbText.Height = size.Height + 10;
-            this.Height = txbText.Top + txbText.Height + 5;
+            SetControlHeightByCurrectText();
             if (ReadOnly) return;
             if (!isRefreshing)
             {
@@ -215,6 +213,13 @@ namespace JournalApp.UserControls
                 Refresh();
 
             }
+        }
+
+        public void SetControlHeightByCurrectText()
+        {
+            Size size = TextRenderer.MeasureText(txbText.Text, txbText.Font, new Size((int)(txbText.ClientSize.Width*0.9), int.MaxValue), TextFormatFlags.WordBreak);
+            txbText.Height = Math.Max(size.Height, 48);
+            this.Height = txbText.Top + txbText.Height + 24;
         }
 
         private void lvFiles_DoubleClick(object sender, EventArgs e)

@@ -41,6 +41,7 @@ namespace JournalApp
         public JournalMessages()
         {
             InitializeComponent();
+            SetDefaultSplitterPosition();
             Database = new DB();
             tlpMessagesCurrent.MouseWheel += tlpMessagesCurrent_MouseWheel;
         }
@@ -106,7 +107,7 @@ namespace JournalApp
                 cbFilterShift.ValueMember = "N";
 
                 //TODO:Заменить номер журнала на проверку JournalType.ProductionShiftActive
-                if (parameters.JournalTypeID == 1)
+                if (parameters.ProductionShiftActive)
                 {
                     lblFilterShift.Visible = true;
                     cbFilterShift.Visible = true;
@@ -134,7 +135,7 @@ namespace JournalApp
 
             this.BackColor = CurrentPalette.BackgroundForm;
             splitContainer1.BackColor = CurrentPalette.BackgroundSplitContainer;
-            pnlSearch.BackColor = CurrentPalette.BackgroundSearchPanel;
+            pnlSearchCurrent.BackColor = CurrentPalette.BackgroundSearchPanel;
             tlpMessagesCurrent.BackColor = CurrentPalette.BackgroundList;
             tlpMessagesPermanent.BackColor = CurrentPalette.BackgroundList;
 
@@ -207,14 +208,14 @@ namespace JournalApp
             bool showallMessages = cbFullPinned.Checked;
             var visibleMessages = showallMessages ? pinnedMessages : pinnedMessages.Where(m => m.StartPin <= now && m.StopPin >= now);
             FillList(tlpMessagesPermanent, visibleMessages.ToList(), true);
-            ResizeAll(tlpMessagesCurrent);
-            ResizeAll(tlpMessagesPermanent);
 
 
             cbFilterUser.SelectedIndexChanged -= cbFilterUser_SelectedIndexChanged;
             cbFilterShift.SelectedIndexChanged -= cbFilterShift_SelectedIndexChanged;
             cbFilterUserPinned.SelectedIndexChanged -= cbFilterUserPinned_SelectedIndexChanged;
 
+            Application.DoEvents();
+            ResizeLayoutControls();
 
 
 
@@ -291,6 +292,12 @@ namespace JournalApp
 
         }
 
+        private void ResizeLayoutControls()
+        {
+            ResizeAll(tlpMessagesCurrent);
+            ResizeAll(tlpMessagesPermanent);
+        }
+
         private void SetFocused(int? msgID)
         {
             if (msgID == null) return;
@@ -343,7 +350,7 @@ namespace JournalApp
                 {
                     var dateLabel = new Label();
                     //TODO:Заменить номер журнала на проверку JournalType.ProductionShiftActive
-                    if (parameters.JournalTypeID == 1)
+                    if (parameters.ProductionShiftActive)
                     {
                         dateLabel.Text = $"Смена {shift.GetShiftNumber()}: {shift.ShiftDate:dd-MM-yyyy} {(!shift.IsNight ? "Д" : "Н")}";
                     }
@@ -374,7 +381,7 @@ namespace JournalApp
                             AllowWrite
                         &&
                             (
-                                parameters.JournalTypeID == 1
+                                parameters.ProductionShiftActive
                                 ?
                                     (
                                         msgShift.GetShiftStartDateTime() < now
@@ -466,6 +473,7 @@ namespace JournalApp
         {
             public int JournalTypeID;
             public int UserID;
+            public bool ProductionShiftActive;
         }
 
         public void ResizeAll(TableLayoutPanel tlpPanel)
@@ -473,6 +481,10 @@ namespace JournalApp
             if (tlpPanel == null) return;
             foreach (Control ctrl in tlpPanel.Controls)
             {
+                if (ctrl is MessageRecordControl mrc)
+                {
+                    mrc.SetControlHeightByCurrectText();
+                }
                 ctrl.Size = new Size(tlpPanel.ClientSize.Width - ctrl.Margin.Left - ctrl.Margin.Right, ctrl.Size.Height);
             }
         }
@@ -547,19 +559,44 @@ namespace JournalApp
         {
             if (cbPermanentCurrent.Checked)
             {
-                SavedSplitterDistance = splitContainer1.SplitterDistance;
-                splitContainer1.SplitterDistance = splitContainer1.ClientSize.Height;
+                SaveSplitterPosition();
+                ExpandSplitterPanel2();
             }
             else
             {
-                if (SavedSplitterDistance != null)
-                    splitContainer1.SplitterDistance = SavedSplitterDistance.Value;
+                if (IsSplitterPositionSaved())
+                    RestoreSplitterPosition();
                 else
                 {
-                    splitContainer1.SplitterDistance = splitContainer1.ClientSize.Height * 25 / 100;// 200;
+                    SetDefaultSplitterPosition();
                 }
 
             }
+        }
+
+        private void SetDefaultSplitterPosition()
+        {
+            splitContainer1.SplitterDistance = splitContainer1.ClientSize.Width * 60 / 100;// 200;
+        }
+
+        private void SaveSplitterPosition()
+        {
+            SavedSplitterDistance = splitContainer1.SplitterDistance;
+
+        }
+        private void RestoreSplitterPosition()
+        {
+            splitContainer1.SplitterDistance = SavedSplitterDistance.Value;
+            SavedSplitterDistance = null;
+
+        }
+        private bool IsSplitterPositionSaved()
+        {
+            return SavedSplitterDistance != null;
+        }
+        private void ExpandSplitterPanel2()
+        {
+            splitContainer1.SplitterDistance = 0;
         }
 
         private void dtpPermanentFrom_ValueChanged(object sender, EventArgs e)
@@ -579,6 +616,21 @@ namespace JournalApp
                 PinnedFilter.UserID = (int)cbFilterUserPinned.SelectedValue;
                 Refresh();
             }
+        }
+
+        private void splitContainer1_SplitterMoved(object sender, SplitterEventArgs e)
+        {
+            ResizeLayoutControls();
+        }
+
+        private void cbPermanentCurrent_Resize(object sender, EventArgs e)
+        {
+            ResizeLayoutControls();
+        }
+
+        private void splitContainer1_Resize(object sender, EventArgs e)
+        {
+            ResizeLayoutControls();
         }
     }
 

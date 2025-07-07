@@ -13,6 +13,7 @@ namespace JournalApp
         public MainForm(int UserID)
         {
             InitializeComponent();
+            Text = $"Журналы (v.{AppVersion.GetVersion()})";
             using (var db = new DB())
             {
                 LoggedUserID = UserID;
@@ -144,7 +145,7 @@ namespace JournalApp
                 foreach (var journalType in JournalTypeList)
                 {
                     var newMenu = new ToolStripMenuItem();
-                    newMenu.Tag = journalType.JournalTypeID;
+                    newMenu.Tag = journalType;
                     newMenu.Text = journalType.JournalTypeName;
                     newMenu.Click += JournalTypeMenu_Click;
                     tsmiJournalList.DropDownItems.Add(newMenu);
@@ -157,9 +158,11 @@ namespace JournalApp
             var tsmiJournal = sender as ToolStripMenuItem;
             if (tsmiJournal != null)
             {
-                var JournalTypeID = (int)tsmiJournal.Tag;
-                //TODO: Открыть окно сообщений этого журнала
-                ShowNewForm<JournalMessages>(new JournalMessages.Parameters() { UserID = CurrentData.CurrentUserID, JournalTypeID = JournalTypeID });
+                if (tsmiJournal.Tag is JournalType journal)
+                {
+                    //TODO: Открыть окно сообщений этого журнала
+                    ShowNewForm<JournalMessages>(new JournalMessages.Parameters() { UserID = CurrentData.CurrentUserID, JournalTypeID = journal.JournalTypeID, ProductionShiftActive = journal.ProductionShiftActive });
+                }
             }
         }
 

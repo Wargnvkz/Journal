@@ -31,9 +31,8 @@
             components = new System.ComponentModel.Container();
             pnlSplit = new Panel();
             splitContainer1 = new SplitContainer();
-            tlpMessagesPermanent = new TableLayoutPanel();
             tlpMessagesCurrent = new TableLayoutPanel();
-            pnlSearch = new Panel();
+            pnlSearchCurrent = new Panel();
             lblFilterShift = new Label();
             lblFiterUser = new Label();
             cbFilterShift = new ComboBox();
@@ -41,22 +40,25 @@
             lblFilterDashCurrent = new Label();
             dtpSelectedEndDateInclude = new DateTimePicker();
             dtpSelectedStartDate = new DateTimePicker();
-            btnCreateMessage = new Button();
-            cbFullPinned = new CheckBox();
-            timer1 = new System.Windows.Forms.Timer(components);
-            lblFilterUserCaption = new Label();
-            cbFilterUserPinned = new ComboBox();
-            lblFilterDashPinnedCaption = new Label();
-            dtpPermanentTo = new DateTimePicker();
-            dtpPermanentFrom = new DateTimePicker();
+            tlpMessagesPermanent = new TableLayoutPanel();
+            pnlSearchPermanent = new Panel();
             pnlFilterPermanent = new Panel();
+            dtpPermanentFrom = new DateTimePicker();
+            lblFilterDashPinnedCaption = new Label();
+            cbFilterUserPinned = new ComboBox();
+            lblFilterUserCaption = new Label();
+            dtpPermanentTo = new DateTimePicker();
+            cbFullPinned = new CheckBox();
+            btnCreateMessage = new Button();
+            timer1 = new System.Windows.Forms.Timer(components);
             cbPermanentCurrent = new CheckBox();
             pnlSplit.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)splitContainer1).BeginInit();
             splitContainer1.Panel1.SuspendLayout();
             splitContainer1.Panel2.SuspendLayout();
             splitContainer1.SuspendLayout();
-            pnlSearch.SuspendLayout();
+            pnlSearchCurrent.SuspendLayout();
+            pnlSearchPermanent.SuspendLayout();
             pnlFilterPermanent.SuspendLayout();
             SuspendLayout();
             // 
@@ -76,37 +78,24 @@
             splitContainer1.Dock = DockStyle.Fill;
             splitContainer1.Location = new Point(0, 0);
             splitContainer1.Name = "splitContainer1";
-            splitContainer1.Orientation = Orientation.Horizontal;
             // 
             // splitContainer1.Panel1
             // 
-            splitContainer1.Panel1.Controls.Add(tlpMessagesPermanent);
+            splitContainer1.Panel1.BackColor = SystemColors.Control;
+            splitContainer1.Panel1.Controls.Add(tlpMessagesCurrent);
+            splitContainer1.Panel1.Controls.Add(pnlSearchCurrent);
             // 
             // splitContainer1.Panel2
             // 
             splitContainer1.Panel2.BackColor = SystemColors.Control;
-            splitContainer1.Panel2.Controls.Add(tlpMessagesCurrent);
-            splitContainer1.Panel2.Controls.Add(pnlSearch);
+            splitContainer1.Panel2.Controls.Add(tlpMessagesPermanent);
+            splitContainer1.Panel2.Controls.Add(pnlSearchPermanent);
             splitContainer1.Size = new Size(1282, 480);
-            splitContainer1.SplitterDistance = 112;
+            splitContainer1.SplitterDistance = 936;
             splitContainer1.SplitterWidth = 8;
             splitContainer1.TabIndex = 0;
-            // 
-            // tlpMessagesPermanent
-            // 
-            tlpMessagesPermanent.AutoScroll = true;
-            tlpMessagesPermanent.BackColor = SystemColors.ControlDarkDark;
-            tlpMessagesPermanent.ColumnCount = 1;
-            tlpMessagesPermanent.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
-            tlpMessagesPermanent.Dock = DockStyle.Fill;
-            tlpMessagesPermanent.Location = new Point(0, 0);
-            tlpMessagesPermanent.Name = "tlpMessagesPermanent";
-            tlpMessagesPermanent.RowCount = 2;
-            tlpMessagesPermanent.RowStyles.Add(new RowStyle(SizeType.Absolute, 800F));
-            tlpMessagesPermanent.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
-            tlpMessagesPermanent.Size = new Size(1280, 110);
-            tlpMessagesPermanent.TabIndex = 0;
-            tlpMessagesPermanent.Resize += tlpMessages_Resize;
+            splitContainer1.SplitterMoved += splitContainer1_SplitterMoved;
+            splitContainer1.Resize += splitContainer1_Resize;
             // 
             // tlpMessagesCurrent
             // 
@@ -116,35 +105,34 @@
             tlpMessagesCurrent.ColumnStyles.Add(new ColumnStyle());
             tlpMessagesCurrent.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 20F));
             tlpMessagesCurrent.Dock = DockStyle.Fill;
-            tlpMessagesCurrent.Location = new Point(0, 50);
+            tlpMessagesCurrent.Location = new Point(0, 71);
             tlpMessagesCurrent.Name = "tlpMessagesCurrent";
             tlpMessagesCurrent.RowCount = 1;
             tlpMessagesCurrent.RowStyles.Add(new RowStyle(SizeType.Absolute, 306F));
-            tlpMessagesCurrent.Size = new Size(1280, 308);
+            tlpMessagesCurrent.Size = new Size(934, 407);
             tlpMessagesCurrent.TabIndex = 1;
             tlpMessagesCurrent.Resize += tlpMessages_Resize;
             // 
-            // pnlSearch
+            // pnlSearchCurrent
             // 
-            pnlSearch.BackColor = SystemColors.Control;
-            pnlSearch.Controls.Add(lblFilterShift);
-            pnlSearch.Controls.Add(lblFiterUser);
-            pnlSearch.Controls.Add(cbFilterShift);
-            pnlSearch.Controls.Add(cbFilterUser);
-            pnlSearch.Controls.Add(lblFilterDashCurrent);
-            pnlSearch.Controls.Add(dtpSelectedEndDateInclude);
-            pnlSearch.Controls.Add(dtpSelectedStartDate);
-            pnlSearch.Dock = DockStyle.Top;
-            pnlSearch.Location = new Point(0, 0);
-            pnlSearch.Name = "pnlSearch";
-            pnlSearch.Size = new Size(1280, 50);
-            pnlSearch.TabIndex = 2;
+            pnlSearchCurrent.BackColor = SystemColors.Control;
+            pnlSearchCurrent.Controls.Add(lblFilterShift);
+            pnlSearchCurrent.Controls.Add(lblFiterUser);
+            pnlSearchCurrent.Controls.Add(cbFilterShift);
+            pnlSearchCurrent.Controls.Add(cbFilterUser);
+            pnlSearchCurrent.Controls.Add(lblFilterDashCurrent);
+            pnlSearchCurrent.Controls.Add(dtpSelectedEndDateInclude);
+            pnlSearchCurrent.Controls.Add(dtpSelectedStartDate);
+            pnlSearchCurrent.Dock = DockStyle.Top;
+            pnlSearchCurrent.Location = new Point(0, 0);
+            pnlSearchCurrent.Name = "pnlSearchCurrent";
+            pnlSearchCurrent.Size = new Size(934, 71);
+            pnlSearchCurrent.TabIndex = 2;
             // 
             // lblFilterShift
             // 
-            lblFilterShift.Anchor = AnchorStyles.Top | AnchorStyles.Right;
             lblFilterShift.AutoSize = true;
-            lblFilterShift.Location = new Point(781, 15);
+            lblFilterShift.Location = new Point(7, 44);
             lblFilterShift.Name = "lblFilterShift";
             lblFilterShift.Size = new Size(46, 15);
             lblFilterShift.TabIndex = 6;
@@ -152,9 +140,8 @@
             // 
             // lblFiterUser
             // 
-            lblFiterUser.Anchor = AnchorStyles.Top | AnchorStyles.Right;
             lblFiterUser.AutoSize = true;
-            lblFiterUser.Location = new Point(960, 15);
+            lblFiterUser.Location = new Point(186, 44);
             lblFiterUser.Name = "lblFiterUser";
             lblFiterUser.Size = new Size(87, 15);
             lblFiterUser.TabIndex = 5;
@@ -162,18 +149,16 @@
             // 
             // cbFilterShift
             // 
-            cbFilterShift.Anchor = AnchorStyles.Top | AnchorStyles.Right;
             cbFilterShift.FormattingEnabled = true;
-            cbFilterShift.Location = new Point(833, 12);
+            cbFilterShift.Location = new Point(59, 41);
             cbFilterShift.Name = "cbFilterShift";
             cbFilterShift.Size = new Size(121, 23);
             cbFilterShift.TabIndex = 4;
             // 
             // cbFilterUser
             // 
-            cbFilterUser.Anchor = AnchorStyles.Top | AnchorStyles.Right;
             cbFilterUser.FormattingEnabled = true;
-            cbFilterUser.Location = new Point(1053, 12);
+            cbFilterUser.Location = new Point(279, 41);
             cbFilterUser.Name = "cbFilterUser";
             cbFilterUser.Size = new Size(218, 23);
             cbFilterUser.TabIndex = 3;
@@ -204,6 +189,100 @@
             dtpSelectedStartDate.TabIndex = 0;
             dtpSelectedStartDate.ValueChanged += dtpSelectedDate_ValueChanged;
             // 
+            // tlpMessagesPermanent
+            // 
+            tlpMessagesPermanent.AutoScroll = true;
+            tlpMessagesPermanent.BackColor = SystemColors.ControlDarkDark;
+            tlpMessagesPermanent.ColumnCount = 1;
+            tlpMessagesPermanent.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
+            tlpMessagesPermanent.Dock = DockStyle.Fill;
+            tlpMessagesPermanent.Location = new Point(0, 58);
+            tlpMessagesPermanent.Name = "tlpMessagesPermanent";
+            tlpMessagesPermanent.RowCount = 2;
+            tlpMessagesPermanent.RowStyles.Add(new RowStyle(SizeType.Absolute, 800F));
+            tlpMessagesPermanent.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
+            tlpMessagesPermanent.Size = new Size(336, 420);
+            tlpMessagesPermanent.TabIndex = 0;
+            tlpMessagesPermanent.Resize += tlpMessages_Resize;
+            // 
+            // pnlSearchPermanent
+            // 
+            pnlSearchPermanent.Controls.Add(pnlFilterPermanent);
+            pnlSearchPermanent.Controls.Add(cbFullPinned);
+            pnlSearchPermanent.Dock = DockStyle.Top;
+            pnlSearchPermanent.Location = new Point(0, 0);
+            pnlSearchPermanent.Name = "pnlSearchPermanent";
+            pnlSearchPermanent.Size = new Size(336, 58);
+            pnlSearchPermanent.TabIndex = 1;
+            // 
+            // pnlFilterPermanent
+            // 
+            pnlFilterPermanent.Controls.Add(dtpPermanentFrom);
+            pnlFilterPermanent.Controls.Add(lblFilterDashPinnedCaption);
+            pnlFilterPermanent.Controls.Add(cbFilterUserPinned);
+            pnlFilterPermanent.Controls.Add(lblFilterUserCaption);
+            pnlFilterPermanent.Controls.Add(dtpPermanentTo);
+            pnlFilterPermanent.Location = new Point(7, 26);
+            pnlFilterPermanent.Name = "pnlFilterPermanent";
+            pnlFilterPermanent.Size = new Size(641, 29);
+            pnlFilterPermanent.TabIndex = 10;
+            pnlFilterPermanent.Visible = false;
+            // 
+            // dtpPermanentFrom
+            // 
+            dtpPermanentFrom.Location = new Point(3, 3);
+            dtpPermanentFrom.Name = "dtpPermanentFrom";
+            dtpPermanentFrom.Size = new Size(140, 23);
+            dtpPermanentFrom.TabIndex = 7;
+            dtpPermanentFrom.ValueChanged += dtpPermanentFrom_ValueChanged;
+            // 
+            // lblFilterDashPinnedCaption
+            // 
+            lblFilterDashPinnedCaption.AutoSize = true;
+            lblFilterDashPinnedCaption.Font = new Font("Segoe UI", 14F, FontStyle.Bold);
+            lblFilterDashPinnedCaption.Location = new Point(149, 1);
+            lblFilterDashPinnedCaption.Name = "lblFilterDashPinnedCaption";
+            lblFilterDashPinnedCaption.Size = new Size(20, 25);
+            lblFilterDashPinnedCaption.TabIndex = 9;
+            lblFilterDashPinnedCaption.Text = "-";
+            // 
+            // cbFilterUserPinned
+            // 
+            cbFilterUserPinned.FormattingEnabled = true;
+            cbFilterUserPinned.Location = new Point(414, 3);
+            cbFilterUserPinned.Name = "cbFilterUserPinned";
+            cbFilterUserPinned.Size = new Size(218, 23);
+            cbFilterUserPinned.TabIndex = 6;
+            cbFilterUserPinned.SelectedIndexChanged += cbFilterUserPinned_SelectedIndexChanged;
+            // 
+            // lblFilterUserCaption
+            // 
+            lblFilterUserCaption.AutoSize = true;
+            lblFilterUserCaption.Location = new Point(321, 7);
+            lblFilterUserCaption.Name = "lblFilterUserCaption";
+            lblFilterUserCaption.Size = new Size(87, 15);
+            lblFilterUserCaption.TabIndex = 7;
+            lblFilterUserCaption.Text = "Пользователь:";
+            // 
+            // dtpPermanentTo
+            // 
+            dtpPermanentTo.Location = new Point(175, 3);
+            dtpPermanentTo.Name = "dtpPermanentTo";
+            dtpPermanentTo.Size = new Size(140, 23);
+            dtpPermanentTo.TabIndex = 8;
+            dtpPermanentTo.ValueChanged += dtpPermanentTo_ValueChanged;
+            // 
+            // cbFullPinned
+            // 
+            cbFullPinned.AutoSize = true;
+            cbFullPinned.Location = new Point(7, 3);
+            cbFullPinned.Name = "cbFullPinned";
+            cbFullPinned.Size = new Size(246, 19);
+            cbFullPinned.TabIndex = 2;
+            cbFullPinned.Text = "Показать все закрепленные сообщения";
+            cbFullPinned.UseVisualStyleBackColor = true;
+            cbFullPinned.CheckedChanged += cbFullPinned_CheckedChanged;
+            // 
             // btnCreateMessage
             // 
             btnCreateMessage.Font = new Font("Segoe UI", 12F);
@@ -216,81 +295,11 @@
             btnCreateMessage.UseVisualStyleBackColor = true;
             btnCreateMessage.Click += btnCreateMessage_Click;
             // 
-            // cbFullPinned
-            // 
-            cbFullPinned.Anchor = AnchorStyles.Top | AnchorStyles.Right;
-            cbFullPinned.AutoSize = true;
-            cbFullPinned.Location = new Point(1036, 8);
-            cbFullPinned.Name = "cbFullPinned";
-            cbFullPinned.Size = new Size(246, 19);
-            cbFullPinned.TabIndex = 2;
-            cbFullPinned.Text = "Показать все закрепленные сообщения";
-            cbFullPinned.UseVisualStyleBackColor = true;
-            cbFullPinned.CheckedChanged += cbFullPinned_CheckedChanged;
-            // 
             // timer1
             // 
             timer1.Enabled = true;
             timer1.Interval = 300000;
             timer1.Tick += timer1_Tick;
-            // 
-            // lblFilterUserCaption
-            // 
-            lblFilterUserCaption.AutoSize = true;
-            lblFilterUserCaption.Location = new Point(321, 7);
-            lblFilterUserCaption.Name = "lblFilterUserCaption";
-            lblFilterUserCaption.Size = new Size(87, 15);
-            lblFilterUserCaption.TabIndex = 7;
-            lblFilterUserCaption.Text = "Пользователь:";
-            // 
-            // cbFilterUserPinned
-            // 
-            cbFilterUserPinned.FormattingEnabled = true;
-            cbFilterUserPinned.Location = new Point(414, 3);
-            cbFilterUserPinned.Name = "cbFilterUserPinned";
-            cbFilterUserPinned.Size = new Size(218, 23);
-            cbFilterUserPinned.TabIndex = 6;
-            cbFilterUserPinned.SelectedIndexChanged += cbFilterUserPinned_SelectedIndexChanged;
-            // 
-            // lblFilterDashPinnedCaption
-            // 
-            lblFilterDashPinnedCaption.AutoSize = true;
-            lblFilterDashPinnedCaption.Font = new Font("Segoe UI", 14F, FontStyle.Bold);
-            lblFilterDashPinnedCaption.Location = new Point(149, 1);
-            lblFilterDashPinnedCaption.Name = "lblFilterDashPinnedCaption";
-            lblFilterDashPinnedCaption.Size = new Size(20, 25);
-            lblFilterDashPinnedCaption.TabIndex = 9;
-            lblFilterDashPinnedCaption.Text = "-";
-            // 
-            // dtpPermanentTo
-            // 
-            dtpPermanentTo.Location = new Point(175, 3);
-            dtpPermanentTo.Name = "dtpPermanentTo";
-            dtpPermanentTo.Size = new Size(140, 23);
-            dtpPermanentTo.TabIndex = 8;
-            dtpPermanentTo.ValueChanged += dtpPermanentTo_ValueChanged;
-            // 
-            // dtpPermanentFrom
-            // 
-            dtpPermanentFrom.Location = new Point(3, 3);
-            dtpPermanentFrom.Name = "dtpPermanentFrom";
-            dtpPermanentFrom.Size = new Size(140, 23);
-            dtpPermanentFrom.TabIndex = 7;
-            dtpPermanentFrom.ValueChanged += dtpPermanentFrom_ValueChanged;
-            // 
-            // pnlFilterPermanent
-            // 
-            pnlFilterPermanent.Anchor = AnchorStyles.Top | AnchorStyles.Right;
-            pnlFilterPermanent.Controls.Add(dtpPermanentFrom);
-            pnlFilterPermanent.Controls.Add(lblFilterDashPinnedCaption);
-            pnlFilterPermanent.Controls.Add(cbFilterUserPinned);
-            pnlFilterPermanent.Controls.Add(lblFilterUserCaption);
-            pnlFilterPermanent.Controls.Add(dtpPermanentTo);
-            pnlFilterPermanent.Location = new Point(389, 3);
-            pnlFilterPermanent.Name = "pnlFilterPermanent";
-            pnlFilterPermanent.Size = new Size(641, 29);
-            pnlFilterPermanent.TabIndex = 10;
-            pnlFilterPermanent.Visible = false;
             // 
             // cbPermanentCurrent
             // 
@@ -302,6 +311,7 @@
             cbPermanentCurrent.Text = "Развернуть объявления";
             cbPermanentCurrent.UseVisualStyleBackColor = true;
             cbPermanentCurrent.CheckedChanged += cbPermanentCurrent_CheckedChanged;
+            cbPermanentCurrent.Resize += cbPermanentCurrent_Resize;
             // 
             // JournalMessages
             // 
@@ -309,8 +319,6 @@
             AutoScaleMode = AutoScaleMode.Font;
             ClientSize = new Size(1284, 519);
             Controls.Add(cbPermanentCurrent);
-            Controls.Add(pnlFilterPermanent);
-            Controls.Add(cbFullPinned);
             Controls.Add(btnCreateMessage);
             Controls.Add(pnlSplit);
             MinimumSize = new Size(1300, 0);
@@ -321,12 +329,13 @@
             splitContainer1.Panel2.ResumeLayout(false);
             ((System.ComponentModel.ISupportInitialize)splitContainer1).EndInit();
             splitContainer1.ResumeLayout(false);
-            pnlSearch.ResumeLayout(false);
-            pnlSearch.PerformLayout();
+            pnlSearchCurrent.ResumeLayout(false);
+            pnlSearchCurrent.PerformLayout();
+            pnlSearchPermanent.ResumeLayout(false);
+            pnlSearchPermanent.PerformLayout();
             pnlFilterPermanent.ResumeLayout(false);
             pnlFilterPermanent.PerformLayout();
             ResumeLayout(false);
-            PerformLayout();
         }
 
         #endregion
@@ -336,7 +345,7 @@
         private TableLayoutPanel tlpMessagesPermanent;
         private TableLayoutPanel tlpMessagesCurrent;
         private Button btnCreateMessage;
-        private Panel pnlSearch;
+        private Panel pnlSearchCurrent;
         private DateTimePicker dtpSelectedStartDate;
         private CheckBox cbFullPinned;
         private System.Windows.Forms.Timer timer1;
@@ -353,5 +362,6 @@
         private DateTimePicker dtpPermanentFrom;
         private Panel pnlFilterPermanent;
         private CheckBox cbPermanentCurrent;
+        private Panel pnlSearchPermanent;
     }
 }
