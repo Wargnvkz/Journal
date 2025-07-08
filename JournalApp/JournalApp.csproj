@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
-    <TargetFramework>net8.0-windows7.0</TargetFramework>
+    <TargetFramework>net6.0-windows7.0</TargetFramework>
     <Nullable>enable</Nullable>
     <UseWindowsForms>true</UseWindowsForms>
     <ImplicitUsings>enable</ImplicitUsings>
@@ -38,9 +38,9 @@
     <Exec Command="powershell -ExecutionPolicy Bypass -File Update-Version.ps1" />
   </Target>
   <PropertyGroup>
-    <Version>1.0.0.102</Version>
-    <AssemblyVersion>1.0.0.102</AssemblyVersion>
-    <FileVersion>1.0.0.102</FileVersion>
-    <AssemblyInformationalVersion>1.0.0.102</AssemblyInformationalVersion>
+    <Version>1.0.0.119</Version>
+    <AssemblyVersion>1.0.0.119</AssemblyVersion>
+    <FileVersion>1.0.0.119</FileVersion>
+    <AssemblyInformationalVersion>1.0.0.119</AssemblyInformationalVersion>
   </PropertyGroup>
 </Project>

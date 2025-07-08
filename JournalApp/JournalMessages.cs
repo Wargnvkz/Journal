@@ -16,7 +16,7 @@ using System.Numerics;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
-using static System.Runtime.InteropServices.JavaScript.JSType;
+//using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace JournalApp
 {
@@ -346,8 +346,8 @@ namespace JournalApp
                         Height = 36,
                         Margin = DateLabelMargin,
                         Font = DateLabelFont,
-                        AutoSize = true,
-                        Dock = DockStyle.Top
+                        AutoSize = false,
+                        //Dock = DockStyle.Top
                     };
                     newControls.Add(dateLabel);
                 }
@@ -571,7 +571,7 @@ namespace JournalApp
                 {
                     mrc.SetControlHeightByCurrectText();
                 }
-                ctrl.Size = new Size(tlpPanel.ClientSize.Width - ctrl.Margin.Left - ctrl.Margin.Right, ctrl.Size.Height);
+                ctrl.Size = new Size(tlpPanel.Size.Width - ctrl.Margin.Left - ctrl.Margin.Right, ctrl.Size.Height);
             }
         }
 
