@@ -586,7 +586,7 @@ namespace JournalApp
         private void cbFullPinned_CheckedChanged(object sender, EventArgs e)
         {
             pnlFilterPermanent.Visible = cbFullPinned.Checked;
-            dtpPermanentFrom.Value = DateTime.Now.AddDays(-30);
+            dtpPermanentFrom.Value = DateTime.Now.AddDays(-90);
             dtpPermanentTo.Value = DateTime.Now;
 
             Refresh();
