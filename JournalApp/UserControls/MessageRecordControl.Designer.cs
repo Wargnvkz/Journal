@@ -40,6 +40,7 @@
             cmsMessage = new ContextMenuStrip(components);
             tsmiPinMessage = new ToolStripMenuItem();
             cbPin = new CheckBox();
+            lblSavedSign = new Label();
             cmsFiles.SuspendLayout();
             cmsMessage.SuspendLayout();
             SuspendLayout();
@@ -48,7 +49,7 @@
             // 
             txbText.AllowDrop = true;
             txbText.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
-            txbText.Font = new Font("Microsoft Sans Serif", 12F, FontStyle.Regular, GraphicsUnit.Point, 204);
+            txbText.Font = new Font("Microsoft Sans Serif", 12F, FontStyle.Regular, GraphicsUnit.Point);
             txbText.Location = new Point(4, 24);
             txbText.Margin = new Padding(4, 3, 4, 3);
             txbText.Multiline = true;
@@ -78,7 +79,7 @@
             // 
             // lblUser
             // 
-            lblUser.Font = new Font("Microsoft Sans Serif", 12F);
+            lblUser.Font = new Font("Microsoft Sans Serif", 12F, FontStyle.Regular, GraphicsUnit.Point);
             lblUser.Location = new Point(4, 1);
             lblUser.Margin = new Padding(4, 0, 4, 0);
             lblUser.Name = "lblUser";
@@ -89,7 +90,7 @@
             // btnDelete
             // 
             btnDelete.Anchor = AnchorStyles.Top | AnchorStyles.Right;
-            btnDelete.Font = new Font("Microsoft Sans Serif", 12F, FontStyle.Bold, GraphicsUnit.Point, 204);
+            btnDelete.Font = new Font("Microsoft Sans Serif", 12F, FontStyle.Bold, GraphicsUnit.Point);
             btnDelete.ForeColor = Color.Red;
             btnDelete.Location = new Point(1098, 1);
             btnDelete.Margin = new Padding(4, 3, 4, 3);
@@ -103,7 +104,7 @@
             // lblDateTimeCreate
             // 
             lblDateTimeCreate.AutoSize = true;
-            lblDateTimeCreate.Font = new Font("Microsoft Sans Serif", 12F);
+            lblDateTimeCreate.Font = new Font("Microsoft Sans Serif", 12F, FontStyle.Regular, GraphicsUnit.Point);
             lblDateTimeCreate.Location = new Point(258, 1);
             lblDateTimeCreate.Margin = new Padding(4, 0, 4, 0);
             lblDateTimeCreate.Name = "lblDateTimeCreate";
@@ -142,7 +143,7 @@
             // 
             cbPin.Anchor = AnchorStyles.Top | AnchorStyles.Right;
             cbPin.Appearance = Appearance.Button;
-            cbPin.Font = new Font("Segoe UI", 12F);
+            cbPin.Font = new Font("Segoe UI", 12F, FontStyle.Regular, GraphicsUnit.Point);
             cbPin.Location = new Point(1064, 1);
             cbPin.Name = "cbPin";
             cbPin.Size = new Size(27, 28);
@@ -152,6 +153,18 @@
             cbPin.UseVisualStyleBackColor = true;
             cbPin.Click += cbPin_Click;
             // 
+            // lblSavedSign
+            // 
+            lblSavedSign.Anchor = AnchorStyles.Top | AnchorStyles.Right;
+            lblSavedSign.AutoSize = true;
+            lblSavedSign.ForeColor = Color.Green;
+            lblSavedSign.Location = new Point(754, 5);
+            lblSavedSign.Name = "lblSavedSign";
+            lblSavedSign.Size = new Size(68, 15);
+            lblSavedSign.TabIndex = 8;
+            lblSavedSign.Text = "Сохранено";
+            lblSavedSign.Visible = false;
+            // 
             // MessageRecordControl
             // 
             AllowDrop = true;
@@ -159,6 +172,7 @@
             AutoScaleMode = AutoScaleMode.Font;
             BackColor = SystemColors.Control;
             ContextMenuStrip = cmsMessage;
+            Controls.Add(lblSavedSign);
             Controls.Add(cbPin);
             Controls.Add(lblDateTimeCreate);
             Controls.Add(btnDelete);
@@ -190,5 +204,6 @@
         private ContextMenuStrip cmsMessage;
         private ToolStripMenuItem tsmiPinMessage;
         private CheckBox cbPin;
+        private Label lblSavedSign;
     }
 }

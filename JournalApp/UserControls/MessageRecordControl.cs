@@ -13,6 +13,7 @@ using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Xml.Linq;
 using static System.Windows.Forms.VisualStyles.VisualStyleElement;
+using System.Data.Entity;
 
 namespace JournalApp.UserControls
 {
@@ -30,16 +31,23 @@ namespace JournalApp.UserControls
         private const int WM_MOUSEWHEEL = 0x020A;
 
 
-        public delegate void OnMessageRecordEvent(MessageRecordControl sender, JournalDB.Message CurrentMessage);
+        public delegate void OnMessageRecordEvent(MessageRecordControl sender, int MessageID);
         public int MessageID { get; private set; }
-        public JournalDB.Message CurrentMessage { get; private set; }
-        DB Database;
         private ImageList imageList;
         bool isRefreshing = false;
         bool _ReadOnly = false;
         public event OnMessageRecordEvent OnDelete;
         public event OnMessageRecordEvent OnChange;
         ThemePalette CurrentPalette;
+
+        private System.Windows.Forms.Timer saveTimer;
+        private const int SaveDelayMs = 1000; // 1 секунда после последнего ввода
+        private System.Windows.Forms.Timer hideCheckTimer;
+        bool IsSaved
+        {
+            get { return lblSavedSign.Visible; }
+            set { lblSavedSign.Visible = value; }
+        }
         public bool ReadOnly
         {
             get => _ReadOnly;
@@ -61,12 +69,11 @@ namespace JournalApp.UserControls
                 Refresh();
             }
         }
-        public MessageRecordControl(int messageID, DB database, bool isPinned, ThemePalette palette)
+        public MessageRecordControl(JournalDB.Message msg, bool isPinned, ThemePalette palette)
         {
             InitializeComponent();
-            MessageID = messageID;
-            Database = database;
-            CurrentMessage = Database.Messages.Where(air => air.MessageID == MessageID).FirstOrDefault();
+            MessageID = msg.MessageID;
+
             CurrentPalette = palette;
             txbText.Font = isPinned ? palette.PinnedMessageFont : palette.MessageFont;
             txbText.ForeColor = palette.TextPrimary;
@@ -78,6 +85,10 @@ namespace JournalApp.UserControls
             lblDateTimeCreate.Font = palette.SecondaryTextFont;
             BackColor = isPinned ? palette.BackgroundPinnedMessage : palette.BackgroundMessage;
             Refresh();
+
+            saveTimer = new System.Windows.Forms.Timer();
+            saveTimer.Interval = SaveDelayMs;
+            saveTimer.Tick += SaveTimer_Tick;
         }
 
         private void TxbText_MouseWheel(object? sender, MouseEventArgs e)
@@ -97,41 +108,44 @@ namespace JournalApp.UserControls
         public override void Refresh()
         {
             base.Refresh();
+
             isRefreshing = true;
             try
             {
-                if (CurrentMessage == null) return;
-                var userrec = Database.Users.Where(u => u.UserID == CurrentMessage.UserID).FirstOrDefault();
-                var username = userrec?.UserName ?? $"Неизвестно(UserID={CurrentMessage.UserID})";
-                lblUser.Text = username;
-                txbText.Text = CurrentMessage.MessageText;
-                lblDateTimeCreate.Text = CurrentMessage.CreatingDate.ToString("dd-MM-yyyy HH\\:mm\\:ss");
-                cbPin.Checked = CurrentMessage.IsPinned;
-                imageList = new ImageList
+                using (var Database = new DB())
                 {
-                    ImageSize = new Size(32, 32) // Размер иконок
-                };
-                lvFiles.Items.Clear();
-                lvFiles.LargeImageList = imageList; // Привязываем ImageList к ListView
-                var files = Database.MessageFiles.Where(airf => airf.MessageID == MessageID).ToList();
-                for (int i = 0; i < files.Count(); i++)
-                {
-                    var fileName = String.IsNullOrWhiteSpace(files[i].Filename) ? $"{i}.jpg" : files[i].Filename;
-                    Icon fileIcon = FileIconHelper.GetIconByExtension(Path.GetExtension(fileName));// Icon.ExtractAssociatedIcon(fileName);
-                    if (fileIcon != null)
+                    var CurrentMessage = Database.Messages.First(m => m.MessageID == MessageID);
+                    var userrec = Database.Users.Where(u => u.UserID == CurrentMessage.UserID).FirstOrDefault();
+                    var username = userrec?.UserName ?? $"Неизвестно(UserID={CurrentMessage.UserID})";
+                    lblUser.Text = username;
+                    txbText.Text = CurrentMessage.MessageText;
+                    lblDateTimeCreate.Text = CurrentMessage.CreatingDate.ToString("dd-MM-yyyy HH\\:mm\\:ss");
+                    cbPin.Checked = CurrentMessage.IsPinned;
+                    imageList = new ImageList
                     {
-                        imageList.Images.Add(fileName, fileIcon);
-                    }
-                    var lvi = new ListViewItem()
-                    {
-                        Text = fileName,
-                        ImageKey = fileName
+                        ImageSize = new Size(32, 32) // Размер иконок
                     };
-                    lvi.Tag = files[i].MessageFileID;
-                    lvFiles.Items.Add(lvi);
+                    lvFiles.Items.Clear();
+                    lvFiles.LargeImageList = imageList; // Привязываем ImageList к ListView
+                    var files = Database.MessageFiles.Where(airf => airf.MessageID == MessageID).ToList();
+                    for (int i = 0; i < files.Count(); i++)
+                    {
+                        var fileName = String.IsNullOrWhiteSpace(files[i].Filename) ? $"{i}.jpg" : files[i].Filename;
+                        Icon fileIcon = FileIconHelper.GetIconByExtension(Path.GetExtension(fileName));// Icon.ExtractAssociatedIcon(fileName);
+                        if (fileIcon != null)
+                        {
+                            imageList.Images.Add(fileName, fileIcon);
+                        }
+                        var lvi = new ListViewItem()
+                        {
+                            Text = fileName,
+                            ImageKey = fileName
+                        };
+                        lvi.Tag = files[i].MessageFileID;
+                        lvFiles.Items.Add(lvi);
+                    }
+                    SetElementsPosition();
                 }
-                SetElementsPosition();
-
             }
             finally
             {
@@ -159,24 +173,27 @@ namespace JournalApp.UserControls
             string[] files = (string[])e.Data.GetData(DataFormats.FileDrop);
             if (files.Length > 0)
             {
-                foreach (string filePath in files)
+                using (var Database = new DB())
                 {
-                    using (var file = File.OpenRead(filePath))
+                    foreach (string filePath in files)
                     {
-                        var newFile = new JournalDB.MessageFile() { MessageID = MessageID };
-                        var data = new byte[file.Length];
-                        file.Read(data, 0, data.Length);
-                        newFile.Data = data;
-                        newFile.Filename = Path.GetFileName(filePath);
-                        Database.MessageFiles.Add(newFile);
-                        Database.ChangeTracker.DetectChanges();
-                        foreach (var entry in Database.ChangeTracker.Entries<JournalDB.MessageFile>())
+                        using (var file = File.OpenRead(filePath))
                         {
-                            //Console.WriteLine($"Состояние: {entry.State}"); // Должно быть Added
+                            var newFile = new JournalDB.MessageFile() { MessageID = MessageID };
+                            var data = new byte[file.Length];
+                            file.Read(data, 0, data.Length);
+                            newFile.Data = data;
+                            newFile.Filename = Path.GetFileName(filePath);
+                            Database.MessageFiles.Add(newFile);
+                            Database.ChangeTracker.DetectChanges();
+                            foreach (var entry in Database.ChangeTracker.Entries<JournalDB.MessageFile>())
+                            {
+                                //Console.WriteLine($"Состояние: {entry.State}"); // Должно быть Added
+                            }
+                            if (Database.Entry(newFile).State != System.Data.Entity.EntityState.Added)
+                                Database.Entry(newFile).State = System.Data.Entity.EntityState.Added;
+                            Database.SaveChanges();
                         }
-                        if (Database.Entry(newFile).State != System.Data.Entity.EntityState.Added)
-                            Database.Entry(newFile).State = System.Data.Entity.EntityState.Added;
-                        Database.SaveChanges();
                     }
                 }
                 Refresh();
@@ -202,17 +219,50 @@ namespace JournalApp.UserControls
             if (ReadOnly) return;
             if (!isRefreshing)
             {
-                CurrentMessage.MessageText = txbText.Text;
-                Database.ChangeTracker.DetectChanges();
-                foreach (var entry in Database.ChangeTracker.Entries<JournalDB.MessageFile>())
-                {
-                }
-                if (Database.Entry(CurrentMessage).State != System.Data.Entity.EntityState.Modified)
-                    Database.Entry(CurrentMessage).State = System.Data.Entity.EntityState.Modified;
-                Database.SaveChanges();
-                Refresh();
+                lblSavedSign.Visible = true;
+                lblSavedSign.Text = "Изменено";
 
+                saveTimer.Stop();   // сбрасываем таймер, если пользователь ещё печатает
+                saveTimer.Start();  // запускаем заново
             }
+        }
+
+        private void SaveTimer_Tick(object sender, EventArgs e)
+        {
+            saveTimer.Stop();
+
+            using (var Database = new DB())
+            {
+                var message = Database.Messages.First(m => m.MessageID == MessageID);
+                message.MessageText = txbText.Text;
+                Database.SaveChanges();
+            }
+            ShowCheckmark();
+            Refresh();
+        }
+        private void ShowCheckmark()
+        {
+            lblSavedSign.Visible = true;
+            lblSavedSign.Text = "Сохранено";
+
+
+            // Если таймер уже есть — перезапускаем
+            if (hideCheckTimer == null)
+            {
+                hideCheckTimer = new System.Windows.Forms.Timer();
+                hideCheckTimer.Interval = 10000; // 10 секунд
+                hideCheckTimer.Tick += (s, e) =>
+                {
+                    lblSavedSign.Visible = false;
+                    hideCheckTimer.Stop();
+                };
+            }
+            else
+            {
+                hideCheckTimer.Stop(); // сбрасываем если уже тикал
+            }
+
+            hideCheckTimer.Start();
         }
 
         public void SetControlHeightByCurrectText()
@@ -229,10 +279,12 @@ namespace JournalApp.UserControls
             ListViewItem item = lvFiles.SelectedItems[0];
             string fileName = item.Text; // Имя файла (из базы)
             int fileID = (int)item.Tag; // Имя файла (из базы)
-
-            // Получаем файл из базы
-            JournalDB.MessageFile fileData = Database.MessageFiles
-                .FirstOrDefault(f => f.MessageFileID == fileID);
+            JournalDB.MessageFile? fileData = null;
+            using (var Database = new DB())
+            {
+                // Получаем файл из базы
+                fileData = Database.MessageFiles.FirstOrDefault(f => f.MessageFileID == fileID);
+            }
 
             if (fileData == null)
             {
@@ -332,8 +384,7 @@ namespace JournalApp.UserControls
             if (_ReadOnly) return;
             if (MessageBox.Show("Вы уверены, что хотите удалить эту запись?", "Подтвержение удаления", MessageBoxButtons.YesNo) == DialogResult.Yes)
             {
-                OnDelete(this, CurrentMessage);
-                Refresh();
+                OnDelete(this, MessageID);
             }
         }
 
@@ -352,15 +403,18 @@ namespace JournalApp.UserControls
             var selectedFile = lvFiles.SelectedItems[0];
             if (MessageBox.Show($"Вы действительно хотите удалить файл {selectedFile.Text}", "Удаление", MessageBoxButtons.YesNo) == DialogResult.Yes)
             {
-                var fileID = (int)selectedFile.Tag;
-                var file = Database.MessageFiles.Local.Where(e => e.MessageFileID == fileID).FirstOrDefault();
-                if (file == null)
+                using (var Database = new DB())
                 {
-                    file = new JournalDB.MessageFile() { MessageFileID = fileID };
-                    Database.MessageFiles.Attach(file);
+                    var fileID = (int)selectedFile.Tag;
+                    var file = Database.MessageFiles.Local.Where(e => e.MessageFileID == fileID).FirstOrDefault();
+                    if (file == null)
+                    {
+                        file = new JournalDB.MessageFile() { MessageFileID = fileID };
+                        Database.MessageFiles.Attach(file);
+                    }
+                    Database.MessageFiles.Remove(file);
+                    Database.SaveChanges();
                 }
-                Database.MessageFiles.Remove(file);
-                Database.SaveChanges();
                 Refresh();
             }
         }
@@ -396,20 +450,31 @@ namespace JournalApp.UserControls
 
         private void PinMessage()
         {
+
             var pinForm = new PinMessageForm();
-            pinForm.PinParameters = new PinMessageForm.PinnedMessageParameters()
+            using (var Database = new DB())
             {
-                IsPinned = CurrentMessage.IsPinned,
-                StartPin = CurrentMessage.StartPin,
-                StopPin = CurrentMessage.StopPin
-            };
+                var CurrentMessage = Database.Messages.First(m => m.MessageID == MessageID);
+
+                pinForm.PinParameters = new PinMessageForm.PinnedMessageParameters()
+                {
+
+                    IsPinned = CurrentMessage.IsPinned,
+                    StartPin = CurrentMessage.StartPin,
+                    StopPin = CurrentMessage.StopPin
+                };
+            }
             if (pinForm.ShowDialog() == DialogResult.OK)
             {
-                CurrentMessage.IsPinned = pinForm.PinParameters.IsPinned;
-                CurrentMessage.StartPin = pinForm.PinParameters.StartPin;
-                CurrentMessage.StopPin = pinForm.PinParameters.StopPin;
-                Database.SaveChanges();
-                OnChange(this, CurrentMessage);
+                using (var Database = new DB())
+                {
+                    var CurrentMessage = Database.Messages.First(m => m.MessageID == MessageID);
+                    CurrentMessage.IsPinned = pinForm.PinParameters.IsPinned;
+                    CurrentMessage.StartPin = pinForm.PinParameters.StartPin;
+                    CurrentMessage.StopPin = pinForm.PinParameters.StopPin;
+                    Database.SaveChanges();
+                }
+                OnChange(this, MessageID);
                 Refresh();
             }
         }

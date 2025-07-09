@@ -27,7 +27,6 @@ namespace JournalApp
         bool AllowWrite = false;
         bool AllowPin = false;
         protected List<JournalTypeUserTypeRight>? JournalTypeUserTypeRights;
-        DB Database;
         ThemePalette CurrentPalette = new ThemePalette();
         Shift SelectedStartShift = new Shift().PreviousShift().PreviousShift();
         Shift SelectedEndShiftIncluded = new Shift().NextShift().NextShift();
@@ -47,7 +46,6 @@ namespace JournalApp
         {
             InitializeComponent();
             SetDefaultSplitterPosition();
-            Database = new DB();
             Load += JournalMessages_Load;
         }
 
@@ -58,45 +56,48 @@ namespace JournalApp
 
         public void Prepare()
         {
-            if (Tag is Parameters parameters)
+            using (var Database = new DB())
             {
-                this.parameters = parameters;
-                var res = 0;
-                JournalTypeUserTypeRights = (from u in Database.Users
-                                             from ut in u.UserTypes
-                                             join jtutr in Database.JournalTypeUserTypeRights on ut.UserTypeID equals jtutr.UserTypeID
-                                             where u.UserID == parameters.UserID && jtutr.JournalTypeID == parameters.JournalTypeID
-                                             select jtutr).ToList();
-                JournalTypeUserTypeRights?.FindAll(j => j.JournalTypeID == parameters.JournalTypeID).ForEach(jt => res |= jt.bUserTypeRight);
-                AllowRead = (res & 1) == 1;
-                AllowWrite = (res & 2) == 2;
-                AllowPin = (res & 4) == 4;
-
-                var jt = Database.JournalTypes.Where(jt => jt.JournalTypeID == parameters.JournalTypeID).FirstOrDefault();
-                if (jt != null)
+                if (Tag is Parameters parameters)
                 {
-                    this.Text = jt.JournalTypeName;
-                }
+                    this.parameters = parameters;
+                    var res = 0;
+                    JournalTypeUserTypeRights = (from u in Database.Users
+                                                 from ut in u.UserTypes
+                                                 join jtutr in Database.JournalTypeUserTypeRights on ut.UserTypeID equals jtutr.UserTypeID
+                                                 where u.UserID == parameters.UserID && jtutr.JournalTypeID == parameters.JournalTypeID
+                                                 select jtutr).ToList();
+                    JournalTypeUserTypeRights?.FindAll(j => j.JournalTypeID == parameters.JournalTypeID).ForEach(jt => res |= jt.bUserTypeRight);
+                    AllowRead = (res & 1) == 1;
+                    AllowWrite = (res & 2) == 2;
+                    AllowPin = (res & 4) == 4;
+
+                    var jt = Database.JournalTypes.Where(jt => jt.JournalTypeID == parameters.JournalTypeID).FirstOrDefault();
+                    if (jt != null)
+                    {
+                        this.Text = jt.JournalTypeName;
+                    }
 
 
-                cbFilterShift.DataSource = new[] { new { Shift = "-", N = 0 }, new { Shift = "Смена 1", N = 1 }, new { Shift = "Смена 2", N = 2 }, new { Shift = "Смена 3", N = 3 }, new { Shift = "Смена 4", N = 4 } };
-                cbFilterShift.DisplayMember = "Shift";
-                cbFilterShift.ValueMember = "N";
+                    cbFilterShift.DataSource = new[] { new { Shift = "-", N = 0 }, new { Shift = "Смена 1", N = 1 }, new { Shift = "Смена 2", N = 2 }, new { Shift = "Смена 3", N = 3 }, new { Shift = "Смена 4", N = 4 } };
+                    cbFilterShift.DisplayMember = "Shift";
+                    cbFilterShift.ValueMember = "N";
 
-                //TODO:Заменить номер журнала на проверку JournalType.ProductionShiftActive
-                if (parameters.ProductionShiftActive)
-                {
-                    lblFilterShift.Visible = true;
-                    cbFilterShift.Visible = true;
+                    //TODO:Заменить номер журнала на проверку JournalType.ProductionShiftActive
+                    if (parameters.ProductionShiftActive)
+                    {
+                        lblFilterShift.Visible = true;
+                        cbFilterShift.Visible = true;
+                    }
+                    else
+                    {
+                        lblFilterShift.Visible = false;
+                        cbFilterShift.Visible = false;
+                    }
+                    Refresh();
                 }
-                else
-                {
-                    lblFilterShift.Visible = false;
-                    cbFilterShift.Visible = false;
-                }
-                Refresh();
+                btnCreateMessage.Enabled = AllowWrite;
             }
-            btnCreateMessage.Enabled = AllowWrite;
         }
 
         public override void Refresh()
@@ -117,156 +118,158 @@ namespace JournalApp
             tlpMessagesPermanent.BackColor = CurrentPalette.BackgroundList;
 
             var now = DateTime.Now;
-            RefreshDatabaseWithAttachCurrentToContext();
-            var msglist = Database.Messages.Where(msg => msg.JournalTypeID == parameters.JournalTypeID).ToList();
-            var msgcurrent = msglist.FindAll(m =>
-                SelectedStartShift.ShiftStartsAt() < m.CreatingDate
-                &&
-                SelectedEndShiftIncluded.ShiftEndsAt() > m.CreatingDate
-                &&
-                (
-                    CurrentFilter.UserID > 0
-                    ?
-                        m.UserID == CurrentFilter.UserID
-                    :
-                        true
-                )
-                &&
-                (
-                    CurrentFilter.ShiftNumber > 0
-                    ?
-                        m.Shift.GetShiftNumber() == CurrentFilter.ShiftNumber
-                    : true
-                )
-                &&
-                (
-                    !string.IsNullOrEmpty(CurrentFilter.ContainsText)
-                    ?
-                        m.MessageText.Contains(CurrentFilter.ContainsText)
-                    : true
-                )
-            );
-            var pinnedSelectedShiftFrom = new Shift(dtpPermanentFrom.Value.Date, false);
-            var pinnedSelectedShiftTo = new Shift(dtpPermanentTo.Value.Date, false).NextShift().NextShift();
-            List<JournalDB.Message> msgpinned;
-            if (!cbFullPinned.Checked)
+            using (var Database = new DB())
             {
-                msgpinned = msglist;
-            }
-            else
-            {
-                var ShiftTo = new Shift(dtpPermanentTo.Value.Date, false);
-                var ShiftFrom = new Shift(dtpPermanentFrom.Value.Date, false);
-
-                msgpinned = msglist.FindAll(m =>
-                    ShiftFrom.ShiftStartsAt() < m.CreatingDate
+                var msglist = Database.Messages.Where(msg => msg.JournalTypeID == parameters.JournalTypeID).ToList();
+                var msgcurrent = msglist.FindAll(m =>
+                    SelectedStartShift.ShiftStartsAt() < m.CreatingDate
                     &&
-                    ShiftTo.ShiftEndsAt() > m.CreatingDate
+                    SelectedEndShiftIncluded.ShiftEndsAt() > m.CreatingDate
                     &&
                     (
-                        PinnedFilter.UserID > 0
+                        CurrentFilter.UserID > 0
                         ?
-                            m.UserID == PinnedFilter.UserID
+                            m.UserID == CurrentFilter.UserID
                         :
                             true
                     )
-
                     &&
                     (
-                        !string.IsNullOrEmpty(PinnedFilter.ContainsText)
+                        CurrentFilter.ShiftNumber > 0
                         ?
-                            m.MessageText.Contains(PinnedFilter.ContainsText)
+                            m.Shift.GetShiftNumber() == CurrentFilter.ShiftNumber
+                        : true
+                    )
+                    &&
+                    (
+                        !string.IsNullOrEmpty(CurrentFilter.ContainsText)
+                        ?
+                            m.MessageText.Contains(CurrentFilter.ContainsText)
                         : true
                     )
                 );
-            }
-            FillList(tlpMessagesCurrent, msgcurrent, false);
-            var pinnedMessages = msgpinned.Where(m => m.IsPinned);
-            bool showallMessages = cbFullPinned.Checked;
-            var visibleMessages = showallMessages ? pinnedMessages : pinnedMessages.Where(m => m.StartPin <= now && m.StopPin >= now);
-            FillList(tlpMessagesPermanent, visibleMessages.ToList(), true);
 
-
-            cbFilterUser.SelectedIndexChanged -= cbFilterUser_SelectedIndexChanged;
-            cbFilterShift.SelectedIndexChanged -= cbFilterShift_SelectedIndexChanged;
-            cbFilterUserPinned.SelectedIndexChanged -= cbFilterUserPinned_SelectedIndexChanged;
-
-            Application.DoEvents();
-            ResizeLayoutControls();
-
-
-
-
-
-            //var userIDs = Database.Messages.Select(m => m.UserID).Distinct().ToList();
-            //var users = Database.Users.Where(u => userIDs.Contains(u.UserID)).ToList();
-            {
-                var users = (from m in Database.Messages
-                             join u in Database.Users on m.UserID equals u.UserID
-                             where m.JournalTypeID == parameters.JournalTypeID
-                             select u).Distinct().ToList();
-                users.Insert(0, new JournalDB.User() { UserID = 0, UserName = "-" });
-                int savedUserID = 0;
-                try
+                var pinnedSelectedShiftFrom = new Shift(dtpPermanentFrom.Value.Date, false);
+                var pinnedSelectedShiftTo = new Shift(dtpPermanentTo.Value.Date, false).NextShift().NextShift();
+                List<JournalDB.Message> msgpinned;
+                if (!cbFullPinned.Checked)
                 {
-                    if (cbFilterUser.SelectedValue != null)
-                        savedUserID = (int)cbFilterUser.SelectedValue;
+                    msgpinned = msglist;
                 }
-                catch { }
-
-                int UserPositionIndex = 0;
-                if (savedUserID != 0)
+                else
                 {
-                    UserPositionIndex = users.FindIndex(u => u.UserID == savedUserID);
-                }
+                    var ShiftTo = new Shift(dtpPermanentTo.Value.Date, false);
+                    var ShiftFrom = new Shift(dtpPermanentFrom.Value.Date, false);
 
-                cbFilterUser.DataSource = users;
-                cbFilterUser.DisplayMember = "UserName";
-                cbFilterUser.ValueMember = "UserID";
-                cbFilterUser.SelectedIndex = UserPositionIndex;
-            }
-            {
-                var users = (from m in Database.Messages
-                             join u in Database.Users on m.UserID equals u.UserID
-                             where m.JournalTypeID == parameters.JournalTypeID && m.IsPinned
-                             select u).Distinct().ToList();
-                users.Insert(0, new JournalDB.User() { UserID = 0, UserName = "-" });
-                int savedUserID = 0;
-                try
+                    msgpinned = msglist.FindAll(m =>
+                        ShiftFrom.ShiftStartsAt() < m.CreatingDate
+                        &&
+                        ShiftTo.ShiftEndsAt() > m.CreatingDate
+                        &&
+                        (
+                            PinnedFilter.UserID > 0
+                            ?
+                                m.UserID == PinnedFilter.UserID
+                            :
+                                true
+                        )
+
+                        &&
+                        (
+                            !string.IsNullOrEmpty(PinnedFilter.ContainsText)
+                            ?
+                                m.MessageText.Contains(PinnedFilter.ContainsText)
+                            : true
+                        )
+                    );
+                }
+                FillList(tlpMessagesCurrent, msgcurrent, false);
+                var pinnedMessages = msgpinned.Where(m => m.IsPinned);
+                bool showallMessages = cbFullPinned.Checked;
+                var visibleMessages = showallMessages ? pinnedMessages : pinnedMessages.Where(m => m.StartPin <= now && m.StopPin >= now);
+                FillList(tlpMessagesPermanent, visibleMessages.ToList(), true);
+
+
+                cbFilterUser.SelectedIndexChanged -= cbFilterUser_SelectedIndexChanged;
+                cbFilterShift.SelectedIndexChanged -= cbFilterShift_SelectedIndexChanged;
+                cbFilterUserPinned.SelectedIndexChanged -= cbFilterUserPinned_SelectedIndexChanged;
+
+                Application.DoEvents();
+                ResizeLayoutControls();
+
+
+
+
+
+                //var userIDs = Database.Messages.Select(m => m.UserID).Distinct().ToList();
+                //var users = Database.Users.Where(u => userIDs.Contains(u.UserID)).ToList();
                 {
-                    if (cbFilterUserPinned.SelectedValue != null)
-                        savedUserID = (int)cbFilterUserPinned.SelectedValue;
-                }
-                catch { }
+                    var users = (from m in Database.Messages
+                                 join u in Database.Users on m.UserID equals u.UserID
+                                 where m.JournalTypeID == parameters.JournalTypeID
+                                 select u).Distinct().ToList();
+                    users.Insert(0, new JournalDB.User() { UserID = 0, UserName = "-" });
+                    int savedUserID = 0;
+                    try
+                    {
+                        if (cbFilterUser.SelectedValue != null)
+                            savedUserID = (int)cbFilterUser.SelectedValue;
+                    }
+                    catch { }
 
-                int UserPositionIndex = 0;
-                if (savedUserID != 0)
+                    int UserPositionIndex = 0;
+                    if (savedUserID != 0)
+                    {
+                        UserPositionIndex = users.FindIndex(u => u.UserID == savedUserID);
+                    }
+
+                    cbFilterUser.DataSource = users;
+                    cbFilterUser.DisplayMember = "UserName";
+                    cbFilterUser.ValueMember = "UserID";
+                    cbFilterUser.SelectedIndex = UserPositionIndex;
+                }
                 {
-                    UserPositionIndex = users.FindIndex(u => u.UserID == savedUserID);
+                    var users = (from m in Database.Messages
+                                 join u in Database.Users on m.UserID equals u.UserID
+                                 where m.JournalTypeID == parameters.JournalTypeID && m.IsPinned
+                                 select u).Distinct().ToList();
+                    users.Insert(0, new JournalDB.User() { UserID = 0, UserName = "-" });
+                    int savedUserID = 0;
+                    try
+                    {
+                        if (cbFilterUserPinned.SelectedValue != null)
+                            savedUserID = (int)cbFilterUserPinned.SelectedValue;
+                    }
+                    catch { }
+
+                    int UserPositionIndex = 0;
+                    if (savedUserID != 0)
+                    {
+                        UserPositionIndex = users.FindIndex(u => u.UserID == savedUserID);
+                    }
+                    cbFilterUserPinned.DataSource = users;
+                    cbFilterUserPinned.DisplayMember = "UserName";
+                    cbFilterUserPinned.ValueMember = "UserID";
+                    cbFilterUserPinned.SelectedIndex = UserPositionIndex;
                 }
-                cbFilterUserPinned.DataSource = users;
-                cbFilterUserPinned.DisplayMember = "UserName";
-                cbFilterUserPinned.ValueMember = "UserID";
-                cbFilterUserPinned.SelectedIndex = UserPositionIndex;
-            }
-            cbFilterUser.SelectedIndexChanged += cbFilterUser_SelectedIndexChanged;
-            cbFilterShift.SelectedIndexChanged += cbFilterShift_SelectedIndexChanged;
-            cbFilterUserPinned.SelectedIndexChanged += cbFilterUserPinned_SelectedIndexChanged;
+                cbFilterUser.SelectedIndexChanged += cbFilterUser_SelectedIndexChanged;
+                cbFilterShift.SelectedIndexChanged += cbFilterShift_SelectedIndexChanged;
+                cbFilterUserPinned.SelectedIndexChanged += cbFilterUserPinned_SelectedIndexChanged;
 
-            tlpMessagesPermanent.PerformLayout();
-            tlpMessagesCurrent.PerformLayout();
-            // Восстанавливаем позицию прокрутки
-            tlpMessagesCurrent.VerticalScroll.Value = Math.Min(scrollPosition, tlpMessagesCurrent.VerticalScroll.Maximum);
-            if (newMsgID != null)
-            {
-                SetFocused(newMsgID);
-                newMsgID = null;
+                tlpMessagesPermanent.PerformLayout();
+                tlpMessagesCurrent.PerformLayout();
+                // Восстанавливаем позицию прокрутки
+                tlpMessagesCurrent.VerticalScroll.Value = Math.Min(scrollPosition, tlpMessagesCurrent.VerticalScroll.Maximum);
+                if (newMsgID != null)
+                {
+                    SetFocused(newMsgID);
+                    newMsgID = null;
+                }
+                else
+                {
+                    SetFocused(focusedMessage);
+                }
             }
-            else
-            {
-                SetFocused(focusedMessage);
-            }
-
         }
 
         private void ResizeLayoutControls()
@@ -282,7 +285,7 @@ namespace JournalApp
             {
                 if (tlpMessagesCurrent.Controls[i] is MessageRecordControl mc)
                 {
-                    if (mc.CurrentMessage.MessageID == msgID)
+                    if (mc.MessageID == msgID)
                     {
                         tlpMessagesCurrent.PerformLayout();
                         tlpMessagesCurrent.ScrollControlIntoView(tlpMessagesCurrent.Controls[i]);
@@ -301,7 +304,7 @@ namespace JournalApp
                 {
                     if (tlpMessagesCurrent.Controls[i] is MessageRecordControl mc)
                     {
-                        return mc.CurrentMessage.MessageID;
+                        return mc.MessageID;
                     }
                 }
             }
@@ -364,7 +367,7 @@ namespace JournalApp
                     else
                     {
                         // Новый контрол
-                        mrControl = new MessageRecordControl(msg.MessageID, Database, pinned, CurrentPalette);
+                        mrControl = new MessageRecordControl(msg, pinned, CurrentPalette);
                         mrControl.OnDelete += MrControl_OnDeleteRecord;
                         mrControl.OnChange += MrControl_OnChange;
                     }
@@ -497,7 +500,7 @@ namespace JournalApp
             //    LastMsgRec.Focus();
         }
         */
-        private void MrControl_OnChange(MessageRecordControl sender, JournalDB.Message CurrentMessage)
+        private void MrControl_OnChange(MessageRecordControl sender, int MessageID)
         {
             Refresh();
         }
@@ -505,55 +508,67 @@ namespace JournalApp
         private void btnCreateMessage_Click(object sender, EventArgs e)
         {
             if (!AllowWrite) return;
-            var newMsg = new JournalDB.Message() { UserID = parameters.UserID, JournalTypeID = parameters.JournalTypeID, CreatingDate = DateTime.Now };
-            Database.Messages.Add(newMsg);
-            Database.SaveChanges();
-            newMsgID = newMsg.MessageID;
+            using (var Database = new DB())
+            {
+                var newMsg = new JournalDB.Message() { UserID = parameters.UserID, JournalTypeID = parameters.JournalTypeID, CreatingDate = DateTime.Now };
+                Database.Messages.Add(newMsg);
+                Database.SaveChanges();
+                newMsgID = newMsg.MessageID;
+            }
             Refresh();
         }
-        private void MrControl_OnDeleteRecord(MessageRecordControl sender, JournalDB.Message CurrentMessage)
+        private void MrControl_OnDeleteRecord(MessageRecordControl sender, int MessageID)
         {
-
-            var files = Database.MessageFiles.Where(airf => airf.MessageID == CurrentMessage.MessageID).ToList();
-            for (int i = 0; i < files.Count; i++)
+            using (var Database = new DB())
             {
+                var CurrentMessage = Database.Messages.First(m => m.MessageID == MessageID);
+                var files = Database.MessageFiles.Where(airf => airf.MessageID == MessageID).ToList();
+                for (int i = 0; i < files.Count; i++)
+                {
+                    try
+                    {
+                        Database.MessageFiles.Remove(files[i]);
+                    }
+                    catch { }
+                }
                 try
                 {
-                    Database.MessageFiles.Remove(files[i]);
+                    Database.Messages.Remove(CurrentMessage);
                 }
                 catch { }
+                if (tlpMessagesPermanent.Controls.Contains(sender))
+                    tlpMessagesPermanent.Controls.Remove(sender);
+                if (tlpMessagesCurrent.Controls.Contains(sender))
+                    tlpMessagesCurrent.Controls.Remove(sender);
+                Database.ChangeTracker.DetectChanges();
+                foreach (var entry in Database.ChangeTracker.Entries<JournalDB.Message>())
+                {
+                }
+                if (Database.Entry(CurrentMessage).State != System.Data.Entity.EntityState.Deleted)
+                    Database.Entry(CurrentMessage).State = System.Data.Entity.EntityState.Deleted;
+                for (int i = 0; i < files.Count; i++)
+                {
+                    if (Database.Entry(files[i]).State != System.Data.Entity.EntityState.Deleted)
+                        Database.Entry(files[i]).State = System.Data.Entity.EntityState.Deleted;
+                }
+                Database.SaveChanges();
             }
-            try
-            {
-                Database.Messages.Remove(CurrentMessage);
-            }
-            catch { }
-            if (tlpMessagesPermanent.Controls.Contains(sender))
-                tlpMessagesPermanent.Controls.Remove(sender);
-            if (tlpMessagesCurrent.Controls.Contains(sender))
-                tlpMessagesCurrent.Controls.Remove(sender);
-            Database.ChangeTracker.DetectChanges();
-            foreach (var entry in Database.ChangeTracker.Entries<JournalDB.Message>())
-            {
-            }
-            if (Database.Entry(CurrentMessage).State != System.Data.Entity.EntityState.Deleted)
-                Database.Entry(CurrentMessage).State = System.Data.Entity.EntityState.Deleted;
-            for (int i = 0; i < files.Count; i++)
-            {
-                if (Database.Entry(files[i]).State != System.Data.Entity.EntityState.Deleted)
-                    Database.Entry(files[i]).State = System.Data.Entity.EntityState.Deleted;
-            }
-            Database.SaveChanges();
             Refresh();
         }
 
         protected List<JournalDB.Message> GetUserMessagesID()
         {
-            return Database.Messages.Where(m => m.UserID == parameters.UserID && m.JournalTypeID == parameters.JournalTypeID).ToList();
+            using (var Database = new DB())
+            {
+                return Database.Messages.Where(m => m.UserID == parameters.UserID && m.JournalTypeID == parameters.JournalTypeID).ToList();
+            }
         }
         protected List<JournalDB.Message> GetPinnedMessagesID()
         {
-            return Database.Messages.Where(m => m.UserID == parameters.UserID && m.JournalTypeID == parameters.JournalTypeID).ToList();
+            using (var Database = new DB())
+            {
+                return Database.Messages.Where(m => m.UserID == parameters.UserID && m.JournalTypeID == parameters.JournalTypeID).ToList();
+            }
         }
         public class Parameters
         {
@@ -607,11 +622,6 @@ namespace JournalApp
         private void timer1_Tick(object sender, EventArgs e)
         {
             Refresh();
-        }
-
-        private void RefreshDatabaseWithAttachCurrentToContext()
-        {
-            Database.RefreshContext();
         }
 
 
