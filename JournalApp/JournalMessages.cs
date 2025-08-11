@@ -13,6 +13,7 @@ using System.Drawing;
 using System.Drawing.Imaging;
 using System.Linq;
 using System.Numerics;
+using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
@@ -47,6 +48,7 @@ namespace JournalApp
             InitializeComponent();
             SetDefaultSplitterPosition();
             Load += JournalMessages_Load;
+            tlpMessagesCurrent.CellBorderStyle = TableLayoutPanelCellBorderStyle.Single;
         }
 
         private void JournalMessages_Load(object? sender, EventArgs e)
@@ -183,16 +185,12 @@ namespace JournalApp
                         )
                     );
                 }
-                FillList(tlpMessagesCurrent, msgcurrent, false);
+                FillList(ref tlpMessagesCurrent, msgcurrent, false);
                 var pinnedMessages = msgpinned.Where(m => m.IsPinned);
                 bool showallMessages = cbFullPinned.Checked;
                 var visibleMessages = showallMessages ? pinnedMessages : pinnedMessages.Where(m => m.StartPin <= now && m.StopPin >= now);
-                FillList(tlpMessagesPermanent, visibleMessages.ToList(), true);
+                FillList(ref tlpMessagesPermanent, visibleMessages.ToList(), true);
 
-
-                cbFilterUser.SelectedIndexChanged -= cbFilterUser_SelectedIndexChanged;
-                cbFilterShift.SelectedIndexChanged -= cbFilterShift_SelectedIndexChanged;
-                cbFilterUserPinned.SelectedIndexChanged -= cbFilterUserPinned_SelectedIndexChanged;
 
                 Application.DoEvents();
                 ResizeLayoutControls();
@@ -252,9 +250,7 @@ namespace JournalApp
                     cbFilterUserPinned.ValueMember = "UserID";
                     cbFilterUserPinned.SelectedIndex = UserPositionIndex;
                 }
-                cbFilterUser.SelectedIndexChanged += cbFilterUser_SelectedIndexChanged;
-                cbFilterShift.SelectedIndexChanged += cbFilterShift_SelectedIndexChanged;
-                cbFilterUserPinned.SelectedIndexChanged += cbFilterUserPinned_SelectedIndexChanged;
+
 
                 tlpMessagesPermanent.PerformLayout();
                 tlpMessagesCurrent.PerformLayout();
@@ -310,7 +306,163 @@ namespace JournalApp
             }
             return null;
         }
-        private void FillList(TableLayoutPanel layoutPanel, List<JournalDB.Message> messagelist, bool pinned)
+
+
+
+        private void FillList(ref TableLayoutPanel layoutPanel, List<JournalDB.Message> messagelist, bool pinned)
+        {
+            var now = DateTime.Now;
+            layoutPanel.SuspendLayout();
+
+            // Список существующих MessageRecordControl по ID
+            var existingMessages = layoutPanel.Controls
+                .OfType<MessageRecordControl>()
+                .ToDictionary(m => m.MessageID);
+
+            // Список контролов, которые будем оставлять
+            var usedControls = new HashSet<Control>();
+
+            // Новый порядок элементов
+            var newControls = new List<Control>();
+
+            // Группировка по сменам
+            var messageGroups = messagelist
+                .Where(m => m.IsPinned == pinned)
+                .OrderByDescending(m => m.CreatingDate)
+                .GroupBy(m => new { m.Shift.ShiftDate, m.Shift.IsNight });
+
+            foreach (var msgGroup in messageGroups)
+            {
+                var shift = new Shift(msgGroup.Key.ShiftDate, msgGroup.Key.IsNight);
+
+                // Заголовок смены
+                if (!pinned)
+                {
+                    var dateLabel = new Label
+                    {
+                        Text = parameters.ProductionShiftActive
+                            ? $"Смена {shift.GetShiftNumber()}: {shift.ShiftDate:dd-MM-yyyy} {(shift.IsNight ? "Н" : "Д")}"
+                            : $"Дата: {shift.ShiftDate:dd-MM-yyyy}",
+                        BackColor = CurrentPalette.BackgroundDateLabel,
+                        TextAlign = ContentAlignment.MiddleCenter,
+                        Height = 36,
+                        Margin = DateLabelMargin,
+                        Font = DateLabelFont,
+                        AutoSize = true,
+                        Dock = DockStyle.Top
+                    };
+                    newControls.Add(dateLabel);
+                }
+
+                foreach (var msg in msgGroup)
+                {
+                    MessageRecordControl mrControl;
+
+                    if (existingMessages.TryGetValue(msg.MessageID, out var existingControl))
+                    {
+                        // Используем существующий
+                        mrControl = existingControl;
+                    }
+                    else
+                    {
+                        // Создаём новый
+                        mrControl = new MessageRecordControl(msg, pinned, CurrentPalette);
+                        mrControl.OnDelete += MrControl_OnDeleteRecord;
+                        mrControl.OnChange += MrControl_OnChange;
+                    }
+
+                    // Обновление свойств
+                    var msgShift = new Shift(msg.CreatingDate);
+                    var canWrite = msg.UserID == parameters.UserID
+                                   && AllowWrite
+                                   && (
+                                       parameters.ProductionShiftActive
+                                       ? msgShift.GetShiftStartDateTime() < now
+                                         && msgShift.NextShift().GetShiftStartDateTime().AddMinutes(AllowToEditRecordAfterShift) > now
+                                       : msg.CreatingDate.Date == now.Date
+                                   );
+
+                    mrControl.ReadOnly = !canWrite;
+                    mrControl.AllowedToPin = AllowPin;
+                    mrControl.Margin = MessagePadding;
+
+                    newControls.Add(mrControl);
+                    usedControls.Add(mrControl);
+                }
+            }
+
+            // Удаляем старые контролы, которых больше нет
+            foreach (Control ctrl in layoutPanel.Controls.Cast<Control>().ToList())
+            {
+                if (!usedControls.Contains(ctrl))
+                {
+                    ctrl.Dispose();
+                }
+            }
+
+            RebuildLayoutPanel(ref layoutPanel, newControls);
+
+            /*
+            // Полная очистка панели и строк
+            layoutPanel.Controls.Clear();
+            layoutPanel.RowCount = 0;
+            while (layoutPanel.RowStyles.Count > 0)
+                layoutPanel.RowStyles.RemoveAt(0);
+            // ХАК-принудительный сброс
+            layoutPanel.GrowStyle = TableLayoutPanelGrowStyle.FixedSize;
+            layoutPanel.AutoScroll = false;
+            // Хак: меняем GrowStyle, чтобы TableLayoutPanel принудительно пересоздал внутреннюю матрицу
+            layoutPanel.ColumnCount = 1; // на всякий случай
+            layoutPanel.AutoScroll = true;
+
+            // Добавляем всё по-новому
+            foreach (var ctrl in newControls)
+            {
+                layoutPanel.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+                layoutPanel.Controls.Add(ctrl, 0, layoutPanel.RowCount++);
+            }
+            layoutPanel.GrowStyle = TableLayoutPanelGrowStyle.AddRows;
+
+            layoutPanel.ResumeLayout(true);
+            layoutPanel.PerformLayout();
+            */
+        }
+        private void RebuildLayoutPanel(ref TableLayoutPanel LayoutPnl, List<Control> newControls)
+        {
+            var parent = LayoutPnl.Parent;
+            var index = parent.Controls.GetChildIndex(LayoutPnl);
+
+            // Создаём новый TableLayoutPanel с теми же параметрами
+            var newPanel = new TableLayoutPanel
+            {
+                Dock = LayoutPnl.Dock,
+                AutoScroll = LayoutPnl.AutoScroll,
+                BackColor = LayoutPnl.BackColor,
+                ColumnCount = LayoutPnl.ColumnCount,
+                GrowStyle = TableLayoutPanelGrowStyle.AddRows
+            };
+
+            // Заполняем контролами
+            newPanel.SuspendLayout();
+            int row = 0;
+            foreach (var ctrl in newControls)
+            {
+                newPanel.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+                newPanel.Controls.Add(ctrl, 0, row++);
+            }
+            newPanel.ResumeLayout(true);
+
+            // Заменяем старую панель на новую
+            parent.Controls.RemoveAt(index);
+            parent.Controls.Add(newPanel);
+            parent.Controls.SetChildIndex(newPanel, index);
+
+            // Можно сохранить ссылку, если layoutPanel — это поле класса
+            LayoutPnl = newPanel;
+        }
+
+
+        /*private void FillList(TableLayoutPanel layoutPanel, List<JournalDB.Message> messagelist, bool pinned)
         {
             var now = DateTime.Now;
             layoutPanel.SuspendLayout();
@@ -418,9 +570,9 @@ namespace JournalApp
             }
 
             layoutPanel.ResumeLayout(true);
-        }
-        /*
-        private void FillList(TableLayoutPanel layoutPanel, List<JournalDB.Message> messagelist, bool Pinned)
+        }*/
+
+        /*private void FillNewList(TableLayoutPanel layoutPanel, List<JournalDB.Message> messagelist, bool Pinned)
         {
             var now = DateTime.Now;
             foreach (Control ctrl in layoutPanel.Controls)
@@ -460,7 +612,7 @@ namespace JournalApp
 
                 for (int i = 0; i < msglist.Count; i++)
                 {
-                    var mrControl = new MessageRecordControl(msglist[i].MessageID, Database, Pinned, CurrentPalette);
+                    var mrControl = new MessageRecordControl(msglist[i], Pinned, CurrentPalette);
                     var msgShift = new Shift(msglist[i].CreatingDate);
                     //TODO:Заменить номер журнала на проверку JournalType.ProductionShiftActive
                     //var CanWrite = msglist[i].UserID != parameters.UserID || !AllowWrite || !(msgShift.GetShiftStartDateTime() < now && msgShift.NextShift().GetShiftStartDateTime().AddMinutes(AllowToEditRecordAfterShift) > now);
@@ -607,41 +759,12 @@ namespace JournalApp
             Refresh();
         }
 
-        private void dtpSelectedDate_ValueChanged(object sender, EventArgs e)
-        {
-            SelectedStartShift = new Shift(dtpSelectedStartDate.Value.Date, false);
-            Refresh();
-        }
-
-        private void dtpSelectedEndDateInclude_ValueChanged(object sender, EventArgs e)
-        {
-            SelectedEndShiftIncluded = new Shift(dtpSelectedStartDate.Value.Date, true);
-            Refresh();
-        }
-
         private void timer1_Tick(object sender, EventArgs e)
         {
             Refresh();
         }
 
 
-        private void cbFilterShift_SelectedIndexChanged(object sender, EventArgs e)
-        {
-            if (cbFilterShift.SelectedValue != null)
-            {
-                CurrentFilter.ShiftNumber = (int)cbFilterShift.SelectedValue;
-                Refresh();
-            }
-        }
-
-        private void cbFilterUser_SelectedIndexChanged(object sender, EventArgs e)
-        {
-            if (cbFilterUser.SelectedValue != null)
-            {
-                CurrentFilter.UserID = (int)cbFilterUser.SelectedValue;
-                Refresh();
-            }
-        }
 
 
         internal class FilterParameters
@@ -695,24 +818,6 @@ namespace JournalApp
             splitContainer1.SplitterDistance = 0;
         }
 
-        private void dtpPermanentFrom_ValueChanged(object sender, EventArgs e)
-        {
-            Refresh();
-        }
-
-        private void dtpPermanentTo_ValueChanged(object sender, EventArgs e)
-        {
-            Refresh();
-        }
-
-        private void cbFilterUserPinned_SelectedIndexChanged(object sender, EventArgs e)
-        {
-            if (cbFilterUserPinned.SelectedValue != null)
-            {
-                PinnedFilter.UserID = (int)cbFilterUserPinned.SelectedValue;
-                Refresh();
-            }
-        }
 
         private void splitContainer1_SplitterMoved(object sender, SplitterEventArgs e)
         {
@@ -727,6 +832,31 @@ namespace JournalApp
         private void splitContainer1_Resize(object sender, EventArgs e)
         {
             ResizeLayoutControls();
+        }
+
+        private void btnSearch_Click(object sender, EventArgs e)
+        {
+            SelectedStartShift = new Shift(dtpSelectedStartDate.Value.Date, false);
+            SelectedEndShiftIncluded = new Shift(dtpSelectedEndDateInclude.Value.Date, true);
+            if (cbFilterShift.SelectedValue != null)
+            {
+                CurrentFilter.ShiftNumber = (int)cbFilterShift.SelectedValue;
+            }
+            if (cbFilterUser.SelectedValue != null)
+            {
+                CurrentFilter.UserID = (int)cbFilterUser.SelectedValue;
+            }
+            Refresh();
+        }
+
+        private void btnPinnedSearch_Click(object sender, EventArgs e)
+        {
+            if (cbFilterUserPinned.SelectedValue != null)
+            {
+                PinnedFilter.UserID = (int)cbFilterUserPinned.SelectedValue;
+            }
+            Refresh();
+
         }
     }
 
