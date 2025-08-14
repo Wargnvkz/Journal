@@ -29,8 +29,8 @@ namespace JournalApp
         bool AllowPin = false;
         protected List<JournalTypeUserTypeRight>? JournalTypeUserTypeRights;
         ThemePalette CurrentPalette = new ThemePalette();
-        Shift SelectedStartShift = new Shift().PreviousShift().PreviousShift();
-        Shift SelectedEndShiftIncluded = new Shift().NextShift().NextShift();
+        Shift SelectedStartShift;
+        Shift SelectedEndShiftIncluded;
 
         int AllowToEditRecordAfterShift = 30;
         int IsAddingDate = 0;
@@ -46,14 +46,27 @@ namespace JournalApp
         public JournalMessages()
         {
             InitializeComponent();
+            InitDates();
             SetDefaultSplitterPosition();
             Load += JournalMessages_Load;
             tlpMessagesCurrent.CellBorderStyle = TableLayoutPanelCellBorderStyle.Single;
         }
 
+        private void InitDates()
+        {
+            var to_dt = DateTime.Today.AddDays(1);
+            SelectedEndShiftIncluded = new Shift(to_dt, false);
+            var from_dt = to_dt.AddDays(-14);// to_dt.AddDays(-(int)to_dt.DayOfWeek - 7);// new DateTime(to_dt.Year, to_dt.Month, 1).AddMonths(-1);
+            SelectedStartShift = new Shift(from_dt, false);
+            dtpSelectedStartDate.Value = from_dt;
+            dtpSelectedEndDateInclude.Value = to_dt;
+
+        }
+
         private void JournalMessages_Load(object? sender, EventArgs e)
         {
-            dtpSelectedStartDate.Value = SelectedStartShift.AddShift(-10).ShiftStartsAt();
+
+            // Refresh();
         }
 
         public void Prepare()

@@ -268,8 +268,8 @@ namespace JournalApp.UserControls
         public void SetControlHeightByCurrectText()
         {
             Size size = TextRenderer.MeasureText(txbText.Text, txbText.Font, new Size((int)(txbText.ClientSize.Width * 0.9), int.MaxValue), TextFormatFlags.WordBreak);
-            txbText.Height = Math.Max(size.Height, 48);
-            this.Height = txbText.Top + txbText.Height + 24;
+            txbText.Height = Math.Max(size.Height + (_ReadOnly ? 0 : 24), 48);
+            this.Height = txbText.Top + txbText.Height + 16;
         }
 
         private void lvFiles_DoubleClick(object sender, EventArgs e)
