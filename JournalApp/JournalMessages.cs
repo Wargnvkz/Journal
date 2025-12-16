@@ -14,6 +14,7 @@ using System.Drawing.Imaging;
 using System.Linq;
 using System.Numerics;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
@@ -118,167 +119,178 @@ namespace JournalApp
         public override void Refresh()
         {
             base.Refresh();
-            var focusedMessage = GetFocused();
-            // Сохраняем текущую позицию прокрутки
-            int scrollPosition = tlpMessagesCurrent.VerticalScroll.Value;
-
-            this.AutoScaleMode = AutoScaleMode.None;
-            this.AutoScaleMode = AutoScaleMode.Font;
-            this.PerformAutoScale();
-
-            this.BackColor = CurrentPalette.BackgroundForm;
-            splitContainer1.BackColor = CurrentPalette.BackgroundSplitContainer;
-            pnlSearchCurrent.BackColor = CurrentPalette.BackgroundSearchPanel;
-            tlpMessagesCurrent.BackColor = CurrentPalette.BackgroundList;
-            tlpMessagesPermanent.BackColor = CurrentPalette.BackgroundList;
-
-            var now = DateTime.Now;
-            using (var Database = new DB())
+            try
             {
-                var msglist = Database.Messages.Where(msg => msg.JournalTypeID == parameters.JournalTypeID).ToList();
-                var msgcurrent = msglist.FindAll(m =>
-                    SelectedStartShift.ShiftStartsAt() < m.CreatingDate
-                    &&
-                    SelectedEndShiftIncluded.ShiftEndsAt() > m.CreatingDate
-                    &&
-                    (
-                        CurrentFilter.UserID > 0
-                        ?
-                            m.UserID == CurrentFilter.UserID
-                        :
-                            true
-                    )
-                    &&
-                    (
-                        CurrentFilter.ShiftNumber > 0
-                        ?
-                            m.Shift.GetShiftNumber() == CurrentFilter.ShiftNumber
-                        : true
-                    )
-                    &&
-                    (
-                        !string.IsNullOrEmpty(CurrentFilter.ContainsText)
-                        ?
-                            m.MessageText.Contains(CurrentFilter.ContainsText)
-                        : true
-                    )
-                );
+                Cursor = Cursors.WaitCursor;
+                Application.DoEvents();
+                var focusedMessage = GetFocused();
+                // Сохраняем текущую позицию прокрутки
+                int scrollPosition = tlpMessagesCurrent.VerticalScroll.Value;
 
-                var pinnedSelectedShiftFrom = new Shift(dtpPermanentFrom.Value.Date, false);
-                var pinnedSelectedShiftTo = new Shift(dtpPermanentTo.Value.Date, false).NextShift().NextShift();
-                List<JournalDB.Message> msgpinned;
-                if (!cbFullPinned.Checked)
-                {
-                    msgpinned = msglist;
-                }
-                else
-                {
-                    var ShiftTo = new Shift(dtpPermanentTo.Value.Date, false);
-                    var ShiftFrom = new Shift(dtpPermanentFrom.Value.Date, false);
+                this.AutoScaleMode = AutoScaleMode.None;
+                this.AutoScaleMode = AutoScaleMode.Font;
+                this.PerformAutoScale();
 
-                    msgpinned = msglist.FindAll(m =>
-                        ShiftFrom.ShiftStartsAt() < m.CreatingDate
+                this.BackColor = CurrentPalette.BackgroundForm;
+                splitContainer1.BackColor = CurrentPalette.BackgroundSplitContainer;
+                pnlSearchCurrent.BackColor = CurrentPalette.BackgroundSearchPanel;
+                tlpMessagesCurrent.BackColor = CurrentPalette.BackgroundList;
+                tlpMessagesPermanent.BackColor = CurrentPalette.BackgroundList;
+
+                var now = DateTime.Now;
+                using (var Database = new DB())
+                {
+                    var msglist = Database.Messages.Where(msg => msg.JournalTypeID == parameters.JournalTypeID).ToList();
+                    var msgcurrent = msglist.FindAll(m =>
+                        SelectedStartShift.ShiftStartsAt() < m.CreatingDate
                         &&
-                        ShiftTo.ShiftEndsAt() > m.CreatingDate
+                        SelectedEndShiftIncluded.ShiftEndsAt() > m.CreatingDate
                         &&
                         (
-                            PinnedFilter.UserID > 0
+                            CurrentFilter.UserID > 0
                             ?
-                                m.UserID == PinnedFilter.UserID
+                                m.UserID == CurrentFilter.UserID
                             :
                                 true
                         )
-
                         &&
                         (
-                            !string.IsNullOrEmpty(PinnedFilter.ContainsText)
+                            CurrentFilter.ShiftNumber > 0
                             ?
-                                m.MessageText.Contains(PinnedFilter.ContainsText)
+                                m.Shift.GetShiftNumber() == CurrentFilter.ShiftNumber
+                            : true
+                        )
+                        &&
+                        (
+                            !string.IsNullOrEmpty(CurrentFilter.ContainsText)
+                            ?
+                                m.MessageText.Contains(CurrentFilter.ContainsText)
                             : true
                         )
                     );
-                }
-                FillList(ref tlpMessagesCurrent, msgcurrent, false);
-                var pinnedMessages = msgpinned.Where(m => m.IsPinned);
-                bool showallMessages = cbFullPinned.Checked;
-                var visibleMessages = showallMessages ? pinnedMessages : pinnedMessages.Where(m => m.StartPin <= now && m.StopPin >= now);
-                FillList(ref tlpMessagesPermanent, visibleMessages.ToList(), true);
 
-
-                Application.DoEvents();
-                ResizeLayoutControls();
-
-
-
-
-
-                //var userIDs = Database.Messages.Select(m => m.UserID).Distinct().ToList();
-                //var users = Database.Users.Where(u => userIDs.Contains(u.UserID)).ToList();
-                {
-                    var users = (from m in Database.Messages
-                                 join u in Database.Users on m.UserID equals u.UserID
-                                 where m.JournalTypeID == parameters.JournalTypeID
-                                 select u).Distinct().ToList();
-                    users.Insert(0, new JournalDB.User() { UserID = 0, UserName = "-" });
-                    int savedUserID = 0;
-                    try
+                    var pinnedSelectedShiftFrom = new Shift(dtpPermanentFrom.Value.Date, false);
+                    var pinnedSelectedShiftTo = new Shift(dtpPermanentTo.Value.Date, false).NextShift().NextShift();
+                    List<JournalDB.Message> msgpinned;
+                    if (!cbFullPinned.Checked)
                     {
-                        if (cbFilterUser.SelectedValue != null)
-                            savedUserID = (int)cbFilterUser.SelectedValue;
+                        msgpinned = msglist;
                     }
-                    catch { }
-
-                    int UserPositionIndex = 0;
-                    if (savedUserID != 0)
+                    else
                     {
-                        UserPositionIndex = users.FindIndex(u => u.UserID == savedUserID);
-                    }
+                        var ShiftTo = new Shift(dtpPermanentTo.Value.Date, false);
+                        var ShiftFrom = new Shift(dtpPermanentFrom.Value.Date, false);
 
-                    cbFilterUser.DataSource = users;
-                    cbFilterUser.DisplayMember = "UserName";
-                    cbFilterUser.ValueMember = "UserID";
-                    cbFilterUser.SelectedIndex = UserPositionIndex;
-                }
-                {
-                    var users = (from m in Database.Messages
-                                 join u in Database.Users on m.UserID equals u.UserID
-                                 where m.JournalTypeID == parameters.JournalTypeID && m.IsPinned
-                                 select u).Distinct().ToList();
-                    users.Insert(0, new JournalDB.User() { UserID = 0, UserName = "-" });
-                    int savedUserID = 0;
-                    try
+                        msgpinned = msglist.FindAll(m =>
+                            ShiftFrom.ShiftStartsAt() < m.CreatingDate
+                            &&
+                            ShiftTo.ShiftEndsAt() > m.CreatingDate
+                            &&
+                            (
+                                PinnedFilter.UserID > 0
+                                ?
+                                    m.UserID == PinnedFilter.UserID
+                                :
+                                    true
+                            )
+
+                            &&
+                            (
+                                !string.IsNullOrEmpty(PinnedFilter.ContainsText)
+                                ?
+                                    m.MessageText.Contains(PinnedFilter.ContainsText)
+                                : true
+                            )
+                        );
+                    }
+                    FillList(ref tlpMessagesCurrent, msgcurrent, false);
+                    var pinnedMessages = msgpinned.Where(m => m.IsPinned);
+                    bool showallMessages = cbFullPinned.Checked;
+                    var visibleMessages = showallMessages ? pinnedMessages : pinnedMessages.Where(m => m.StartPin <= now && m.StopPin >= now);
+                    FillList(ref tlpMessagesPermanent, visibleMessages.ToList(), true);
+
+
+                    Application.DoEvents();
+                    ResizeLayoutControls();
+
+
+
+
+
+                    //var userIDs = Database.Messages.Select(m => m.UserID).Distinct().ToList();
+                    //var users = Database.Users.Where(u => userIDs.Contains(u.UserID)).ToList();
                     {
-                        if (cbFilterUserPinned.SelectedValue != null)
-                            savedUserID = (int)cbFilterUserPinned.SelectedValue;
-                    }
-                    catch { }
+                        var users = (from m in Database.Messages
+                                     join u in Database.Users on m.UserID equals u.UserID
+                                     where m.JournalTypeID == parameters.JournalTypeID
+                                     select u).Distinct().ToList();
+                        users.Insert(0, new JournalDB.User() { UserID = 0, UserName = "-" });
+                        int savedUserID = 0;
+                        try
+                        {
+                            if (cbFilterUser.SelectedValue != null)
+                                savedUserID = (int)cbFilterUser.SelectedValue;
+                        }
+                        catch { }
 
-                    int UserPositionIndex = 0;
-                    if (savedUserID != 0)
+                        int UserPositionIndex = 0;
+                        if (savedUserID != 0)
+                        {
+                            UserPositionIndex = users.FindIndex(u => u.UserID == savedUserID);
+                        }
+
+                        cbFilterUser.DataSource = users;
+                        cbFilterUser.DisplayMember = "UserName";
+                        cbFilterUser.ValueMember = "UserID";
+                        cbFilterUser.SelectedIndex = UserPositionIndex;
+                    }
                     {
-                        UserPositionIndex = users.FindIndex(u => u.UserID == savedUserID);
+                        var users = (from m in Database.Messages
+                                     join u in Database.Users on m.UserID equals u.UserID
+                                     where m.JournalTypeID == parameters.JournalTypeID && m.IsPinned
+                                     select u).Distinct().ToList();
+                        users.Insert(0, new JournalDB.User() { UserID = 0, UserName = "-" });
+                        int savedUserID = 0;
+                        try
+                        {
+                            if (cbFilterUserPinned.SelectedValue != null)
+                                savedUserID = (int)cbFilterUserPinned.SelectedValue;
+                        }
+                        catch { }
+
+                        int UserPositionIndex = 0;
+                        if (savedUserID != 0)
+                        {
+                            UserPositionIndex = users.FindIndex(u => u.UserID == savedUserID);
+                        }
+                        cbFilterUserPinned.DataSource = users;
+                        cbFilterUserPinned.DisplayMember = "UserName";
+                        cbFilterUserPinned.ValueMember = "UserID";
+                        cbFilterUserPinned.SelectedIndex = UserPositionIndex;
                     }
-                    cbFilterUserPinned.DataSource = users;
-                    cbFilterUserPinned.DisplayMember = "UserName";
-                    cbFilterUserPinned.ValueMember = "UserID";
-                    cbFilterUserPinned.SelectedIndex = UserPositionIndex;
-                }
 
 
-                tlpMessagesPermanent.PerformLayout();
-                tlpMessagesCurrent.PerformLayout();
-                // Восстанавливаем позицию прокрутки
-                tlpMessagesCurrent.VerticalScroll.Value = Math.Min(scrollPosition, tlpMessagesCurrent.VerticalScroll.Maximum);
-                if (newMsgID != null)
-                {
-                    SetFocused(newMsgID);
-                    newMsgID = null;
-                }
-                else
-                {
-                    SetFocused(focusedMessage);
+                    tlpMessagesPermanent.PerformLayout();
+                    tlpMessagesCurrent.PerformLayout();
+                    // Восстанавливаем позицию прокрутки
+                    tlpMessagesCurrent.VerticalScroll.Value = Math.Min(scrollPosition, tlpMessagesCurrent.VerticalScroll.Maximum);
+                    if (newMsgID != null)
+                    {
+                        SetFocused(newMsgID);
+                        newMsgID = null;
+                    }
+                    else
+                    {
+                        SetFocused(focusedMessage);
+                    }
                 }
             }
+            finally
+            {
+
+                Cursor = Cursors.Default;
+            }
+
         }
 
         private void ResizeLayoutControls()
@@ -389,11 +401,14 @@ namespace JournalApp
                     var canWrite = msg.UserID == parameters.UserID
                                    && AllowWrite
                                    && (
-                                       parameters.ProductionShiftActive
-                                       ? msgShift.GetShiftStartDateTime() < now
-                                         && msgShift.NextShift().GetShiftStartDateTime().AddMinutes(AllowToEditRecordAfterShift) > now
-                                       : msg.CreatingDate.Date == now.Date
-                                   );
+                                       pinned
+                                       ||
+                                       (
+                                          parameters.ProductionShiftActive
+                                          ? msgShift.GetShiftStartDateTime() < now
+                                            && msgShift.NextShift().GetShiftStartDateTime().AddMinutes(AllowToEditRecordAfterShift) > now
+                                          : msg.CreatingDate.Date == now.Date)
+                                       );
 
                     mrControl.ReadOnly = !canWrite;
                     mrControl.AllowedToPin = AllowPin;
@@ -859,6 +874,11 @@ namespace JournalApp
             {
                 CurrentFilter.UserID = (int)cbFilterUser.SelectedValue;
             }
+            if (!String.IsNullOrWhiteSpace(txbTextSearch.Text))
+            {
+                CurrentFilter.ContainsText = txbTextSearch.Text;
+            }
+            else { CurrentFilter.ContainsText = string.Empty; }
             Refresh();
         }
 

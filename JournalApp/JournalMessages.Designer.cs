@@ -33,6 +33,8 @@
             splitContainer1 = new SplitContainer();
             tlpMessagesCurrent = new TableLayoutPanel();
             pnlSearchCurrent = new Panel();
+            lblTextSearchCaption = new Label();
+            txbTextSearch = new TextBox();
             btnSearch = new Button();
             lblFilterShift = new Label();
             lblFiterUser = new Label();
@@ -93,7 +95,7 @@
             splitContainer1.Panel2.Controls.Add(tlpMessagesPermanent);
             splitContainer1.Panel2.Controls.Add(pnlSearchPermanent);
             splitContainer1.Size = new Size(1420, 480);
-            splitContainer1.SplitterDistance = 686;
+            splitContainer1.SplitterDistance = 726;
             splitContainer1.SplitterWidth = 8;
             splitContainer1.TabIndex = 0;
             splitContainer1.SplitterMoved += splitContainer1_SplitterMoved;
@@ -114,13 +116,15 @@
             tlpMessagesCurrent.Name = "tlpMessagesCurrent";
             tlpMessagesCurrent.RowCount = 1;
             tlpMessagesCurrent.RowStyles.Add(new RowStyle(SizeType.Absolute, 306F));
-            tlpMessagesCurrent.Size = new Size(684, 407);
+            tlpMessagesCurrent.Size = new Size(724, 407);
             tlpMessagesCurrent.TabIndex = 1;
             tlpMessagesCurrent.Resize += tlpMessages_Resize;
             // 
             // pnlSearchCurrent
             // 
             pnlSearchCurrent.BackColor = SystemColors.Control;
+            pnlSearchCurrent.Controls.Add(lblTextSearchCaption);
+            pnlSearchCurrent.Controls.Add(txbTextSearch);
             pnlSearchCurrent.Controls.Add(btnSearch);
             pnlSearchCurrent.Controls.Add(lblFilterShift);
             pnlSearchCurrent.Controls.Add(lblFiterUser);
@@ -132,8 +136,26 @@
             pnlSearchCurrent.Dock = DockStyle.Top;
             pnlSearchCurrent.Location = new Point(0, 0);
             pnlSearchCurrent.Name = "pnlSearchCurrent";
-            pnlSearchCurrent.Size = new Size(684, 71);
+            pnlSearchCurrent.Size = new Size(724, 71);
             pnlSearchCurrent.TabIndex = 2;
+            // 
+            // lblTextSearchCaption
+            // 
+            lblTextSearchCaption.AutoSize = true;
+            lblTextSearchCaption.Location = new Point(490, 15);
+            lblTextSearchCaption.Name = "lblTextSearchCaption";
+            lblTextSearchCaption.Size = new Size(39, 15);
+            lblTextSearchCaption.TabIndex = 9;
+            lblTextSearchCaption.Text = "Текст:";
+            // 
+            // txbTextSearch
+            // 
+            txbTextSearch.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
+            txbTextSearch.Location = new Point(535, 12);
+            txbTextSearch.MaximumSize = new Size(250, 0);
+            txbTextSearch.Name = "txbTextSearch";
+            txbTextSearch.Size = new Size(182, 23);
+            txbTextSearch.TabIndex = 8;
             // 
             // btnSearch
             // 
@@ -215,7 +237,7 @@
             tlpMessagesPermanent.RowCount = 2;
             tlpMessagesPermanent.RowStyles.Add(new RowStyle(SizeType.Absolute, 800F));
             tlpMessagesPermanent.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
-            tlpMessagesPermanent.Size = new Size(724, 420);
+            tlpMessagesPermanent.Size = new Size(684, 420);
             tlpMessagesPermanent.TabIndex = 0;
             tlpMessagesPermanent.Resize += tlpMessages_Resize;
             // 
@@ -226,7 +248,7 @@
             pnlSearchPermanent.Dock = DockStyle.Top;
             pnlSearchPermanent.Location = new Point(0, 0);
             pnlSearchPermanent.Name = "pnlSearchPermanent";
-            pnlSearchPermanent.Size = new Size(724, 58);
+            pnlSearchPermanent.Size = new Size(684, 58);
             pnlSearchPermanent.TabIndex = 1;
             // 
             // pnlFilterPermanent
@@ -388,5 +410,7 @@
         private Panel pnlSearchPermanent;
         private Button btnSearch;
         private Button btnPinnedSearch;
+        private Label lblTextSearchCaption;
+        private TextBox txbTextSearch;
     }
 }
