@@ -84,6 +84,11 @@ namespace JournalApp.UserControls
             lblUser.Font = palette.SecondaryTextFont;
             lblDateTimeCreate.Font = palette.SecondaryTextFont;
             BackColor = isPinned ? palette.BackgroundPinnedMessage : palette.BackgroundMessage;
+
+            imageList = new ImageList
+            {
+                ImageSize = new Size(32, 32) // Размер иконок
+            };
             Refresh();
 
             saveTimer = new System.Windows.Forms.Timer();
@@ -121,10 +126,7 @@ namespace JournalApp.UserControls
                     txbText.Text = CurrentMessage.MessageText;
                     lblDateTimeCreate.Text = CurrentMessage.CreatingDate.ToString("dd-MM-yyyy HH\\:mm\\:ss");
                     cbPin.Checked = CurrentMessage.IsPinned;
-                    imageList = new ImageList
-                    {
-                        ImageSize = new Size(32, 32) // Размер иконок
-                    };
+
                     lvFiles.Items.Clear();
                     lvFiles.LargeImageList = imageList; // Привязываем ImageList к ListView
                     var files = Database.MessageFiles.Where(airf => airf.MessageID == MessageID).ToList();
@@ -134,7 +136,8 @@ namespace JournalApp.UserControls
                         Icon fileIcon = FileIconHelper.GetIconByExtension(Path.GetExtension(fileName));// Icon.ExtractAssociatedIcon(fileName);
                         if (fileIcon != null)
                         {
-                            imageList.Images.Add(fileName, fileIcon);
+                            var bmpIcon = fileIcon.ToBitmap();
+                            imageList.Images.Add(fileName, bmpIcon);
                         }
                         var lvi = new ListViewItem()
                         {
@@ -488,6 +491,7 @@ namespace JournalApp.UserControls
         {
             txbText.GotFocus -= TxbText_GotFocus;
             txbText.MouseWheel -= TxbText_MouseWheel;
+            imageList.Dispose();
         }
 
     }
