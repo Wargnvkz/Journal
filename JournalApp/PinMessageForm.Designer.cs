@@ -28,15 +28,18 @@
         /// </summary>
         private void InitializeComponent()
         {
+            components = new System.ComponentModel.Container();
             gbDate = new GroupBox();
             lblStopPin = new Label();
             dtpStopPin = new DateTimePicker();
             lblStartPin = new Label();
-            cbPin = new CheckBox();
             dtpStartPin = new DateTimePicker();
+            cbPin = new CheckBox();
             btnOK = new Button();
             btnCancel = new Button();
+            errorProvider1 = new ErrorProvider(components);
             gbDate.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)errorProvider1).BeginInit();
             SuspendLayout();
             // 
             // gbDate
@@ -54,7 +57,7 @@
             // lblStopPin
             // 
             lblStopPin.AutoSize = true;
-            lblStopPin.Font = new Font("Segoe UI", 10F);
+            lblStopPin.Font = new Font("Segoe UI", 10F, FontStyle.Regular, GraphicsUnit.Point);
             lblStopPin.Location = new Point(6, 57);
             lblStopPin.Name = "lblStopPin";
             lblStopPin.Size = new Size(51, 19);
@@ -64,7 +67,7 @@
             // dtpStopPin
             // 
             dtpStopPin.CustomFormat = "dd.MM.yyyy HH:mm";
-            dtpStopPin.Font = new Font("Segoe UI", 10F);
+            dtpStopPin.Font = new Font("Segoe UI", 10F, FontStyle.Regular, GraphicsUnit.Point);
             dtpStopPin.Format = DateTimePickerFormat.Custom;
             dtpStopPin.Location = new Point(71, 51);
             dtpStopPin.Name = "dtpStopPin";
@@ -74,12 +77,22 @@
             // lblStartPin
             // 
             lblStartPin.AutoSize = true;
-            lblStartPin.Font = new Font("Segoe UI", 10F);
+            lblStartPin.Font = new Font("Segoe UI", 10F, FontStyle.Regular, GraphicsUnit.Point);
             lblStartPin.Location = new Point(6, 26);
             lblStartPin.Name = "lblStartPin";
             lblStartPin.Size = new Size(59, 19);
             lblStartPin.TabIndex = 2;
             lblStartPin.Text = "Начало:";
+            // 
+            // dtpStartPin
+            // 
+            dtpStartPin.CustomFormat = "dd.MM.yyyy HH:mm";
+            dtpStartPin.Font = new Font("Segoe UI", 10F, FontStyle.Regular, GraphicsUnit.Point);
+            dtpStartPin.Format = DateTimePickerFormat.Custom;
+            dtpStartPin.Location = new Point(71, 20);
+            dtpStartPin.Name = "dtpStartPin";
+            dtpStartPin.Size = new Size(200, 25);
+            dtpStartPin.TabIndex = 1;
             // 
             // cbPin
             // 
@@ -91,16 +104,6 @@
             cbPin.Text = "Закрепить сообщение";
             cbPin.UseVisualStyleBackColor = true;
             cbPin.CheckedChanged += cbPin_CheckedChanged;
-            // 
-            // dtpStartPin
-            // 
-            dtpStartPin.CustomFormat = "dd.MM.yyyy HH:mm";
-            dtpStartPin.Font = new Font("Segoe UI", 10F);
-            dtpStartPin.Format = DateTimePickerFormat.Custom;
-            dtpStartPin.Location = new Point(71, 20);
-            dtpStartPin.Name = "dtpStartPin";
-            dtpStartPin.Size = new Size(200, 25);
-            dtpStartPin.TabIndex = 1;
             // 
             // btnOK
             // 
@@ -122,6 +125,10 @@
             btnCancel.Text = "Отмена";
             btnCancel.UseVisualStyleBackColor = true;
             // 
+            // errorProvider1
+            // 
+            errorProvider1.ContainerControl = this;
+            // 
             // PinMessageForm
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
@@ -135,8 +142,10 @@
             Name = "PinMessageForm";
             StartPosition = FormStartPosition.Manual;
             Text = "PinMessageForm";
+            FormClosing += PinMessageForm_FormClosing;
             gbDate.ResumeLayout(false);
             gbDate.PerformLayout();
+            ((System.ComponentModel.ISupportInitialize)errorProvider1).EndInit();
             ResumeLayout(false);
             PerformLayout();
         }
@@ -151,5 +160,6 @@
         private DateTimePicker dtpStartPin;
         private Button btnOK;
         private Button btnCancel;
+        private ErrorProvider errorProvider1;
     }
 }

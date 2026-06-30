@@ -1,4 +1,5 @@
-﻿using System;
+﻿using JournalDB;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
@@ -7,7 +8,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
-using JournalDB;
+using System.Xml.Linq;
 
 namespace JournalApp
 {
@@ -42,12 +43,39 @@ namespace JournalApp
         {
             gbDate.Enabled = cbPin.Checked;
         }
+        private bool ValidateInput()
+        {
+            bool isValid = true;
+            if (PinParameters.StartPin > PinParameters.StopPin)
+            {
+                errorProvider1.SetError(dtpStopPin, "Время окончания должно быть больше времени начала");
+                isValid = false;
+
+            }
+            else
+            {
+                errorProvider1.SetError(dtpStopPin, ""); // Очищаем ошибку
+
+            }
+            return isValid;
+        }
 
         public class PinnedMessageParameters
         {
             public bool IsPinned;
             public DateTime? StartPin;
             public DateTime? StopPin;
+        }
+
+        private void PinMessageForm_FormClosing(object sender, FormClosingEventArgs e)
+        {
+            if (DialogResult == DialogResult.OK)
+            {
+                if (!ValidateInput())
+                {
+                    e.Cancel = true; // Отменяем закрытие формы
+                }
+            }
         }
     }
 }
